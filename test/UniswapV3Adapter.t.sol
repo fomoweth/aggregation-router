@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console2 as console} from "forge-std/Test.sol";
 import {UniswapV3Adapter} from "src/adapters/UniswapV3Adapter.sol";
 import {Create3} from "src/libraries/Create3.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {FullMath} from "src/libraries/FullMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
+import {PriceUtils} from "test/utils/PriceUtils.sol";
 import {Constants} from "test/utils/Constants.sol";
 
 // forge test -vvv --match-path test/UniswapV3Adapter.t.sol
@@ -24,9 +25,11 @@ contract UniswapV3AdapterTest is Test, Constants {
 		vm.createSelectFork(vm.envString("RPC_ETHEREUM"), 19378914);
 
 		adapter = UniswapV3Adapter(
-			Create3.create3(
-				keccak256(abi.encodePacked("UNISWAP_V3_ADAPTER", address(this))),
-				abi.encodePacked(type(UniswapV3Adapter).creationCode, abi.encode(0, WETH))
+			payable(
+				Create3.create3(
+					keccak256(abi.encodePacked("UNISWAP_V3_ADAPTER", address(this))),
+					abi.encodePacked(type(UniswapV3Adapter).creationCode, abi.encode(WETH, UNISWAP_V3_ID))
+				)
 			)
 		);
 	}
@@ -71,6 +74,42 @@ contract UniswapV3AdapterTest is Test, Constants {
 
 		assertEq(balance0, amountOut);
 		assertEq(balance1, 0);
+	}
+
+	function testSwap0For1UnwrapETHAfter() public {
+		uint256 amountIn = FullMath.mulDiv(ethAmount, 10 ** currency0().decimals(), latestAnswer(feed()));
+
+		deal(currency0(), address(adapter), amountIn);
+		assertEq(currency0().balanceOf(address(adapter)), amountIn);
+
+		(address pool, uint256 expected) = adapter.query(currency0(), currency1(), amountIn);
+		assertEq(pool, WBTC_ETH_3000_POOL);
+
+		bytes32 data = pack(pool, 0, 1, NO_ACTION, UNWRAP_ETH);
+
+		uint256 amountOut = adapter.uniswapV3Swap(data);
+		assertEq(amountOut, expected);
+
+		uint256 balance0 = currency0().balanceOf(address(adapter));
+		uint256 balance1 = address(adapter).balance;
+
+		assertEq(balance0, 0);
+		assertEq(balance1, amountOut);
+	}
+
+	function testSwap0For1WrapETHBefore() public {
+		uint256 amountIn = ethAmount;
+
+		deal(address(adapter), amountIn);
+		assertEq(address(adapter).balance, amountIn);
+
+		(address pool, uint256 expected) = adapter.query(currency1(), currency0(), amountIn);
+		assertEq(pool, WBTC_ETH_3000_POOL);
+
+		bytes32 data = pack(pool, 1, 0, WRAP_ETH, NO_ACTION);
+
+		uint256 amountOut = adapter.uniswapV3Swap(data);
+		assertEq(amountOut, expected);
 	}
 
 	function currency0() internal pure returns (Currency) {

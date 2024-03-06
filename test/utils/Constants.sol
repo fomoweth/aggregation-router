@@ -18,4 +18,6 @@ abstract contract Constants {
 	uint8 constant NO_ACTION = 0;
 	uint8 constant WRAP_ETH = 1;
 	uint8 constant UNWRAP_ETH = 2;
+
+	uint256 constant UNISWAP_V3_ID = 0;
 }
