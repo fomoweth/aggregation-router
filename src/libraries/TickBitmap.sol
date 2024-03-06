@@ -52,8 +52,8 @@ library TickBitmap {
 			mstore(add(ptr, 0x04), wordPos)
 
 			if iszero(staticcall(gas(), pool, ptr, 0x24, 0x00, 0x20)) {
-				returndatacopy(0x00, 0x00, returndatasize())
-				revert(0x00, returndatasize())
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
 			}
 
 			bitmap := mload(0x00)
