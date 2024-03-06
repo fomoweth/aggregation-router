@@ -2,6 +2,10 @@
 pragma solidity ^0.8.20;
 
 library Errors {
+	error AddressZero();
+
+	error AmountZero();
+
 	error IdenticalCurrencyIds();
 
 	error InvalidCurrencyId();
@@ -13,6 +17,8 @@ library Errors {
 	error InsufficientAmountIn();
 
 	error InsufficientAmountOut();
+
+	error InsufficientBalance();
 
 	error OutOfBound();
 }

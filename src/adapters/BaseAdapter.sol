@@ -2,14 +2,11 @@
 pragma solidity ^0.8.20;
 
 import {Errors} from "src/libraries/Errors.sol";
-import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency} from "src/types/Currency.sol";
 
 /// @title BaseAdapter
 
 abstract contract BaseAdapter {
-	using PathDecoder for bytes32;
-
 	uint256 public immutable id;
 
 	Currency internal immutable WRAPPED_NATIVE;
@@ -30,7 +27,9 @@ abstract contract BaseAdapter {
 
 	function wrapNative(Currency currency, uint256 amount) internal {
 		if (currency.isNative()) currency = WRAPPED_NATIVE;
+
 		if (currency != WRAPPED_NATIVE) revert Errors.InvalidCurrency();
+		if (amount == 0) revert Errors.AmountZero();
 
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
@@ -46,7 +45,9 @@ abstract contract BaseAdapter {
 
 	function unwrapNative(Currency currency, uint256 amount) internal {
 		if (currency.isNative()) currency = WRAPPED_NATIVE;
+
 		if (currency != WRAPPED_NATIVE) revert Errors.InvalidCurrency();
+		if (amount == 0) revert Errors.AmountZero();
 
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
@@ -68,4 +69,6 @@ abstract contract BaseAdapter {
 	) internal view virtual returns (address pool, uint256 amountOut);
 
 	function maxCurrencyId() internal pure virtual returns (uint256);
+
+	receive() external payable {}
 }

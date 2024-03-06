@@ -57,11 +57,12 @@ contract UniswapV3Adapter is BaseAdapter {
 		(Currency currencyIn, Currency currencyOut, uint24 fee) = pool.getPoolKey();
 		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
+		if (wrapIn == 1) wrapNative(currencyIn, address(this).balance);
+
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 1) wrapNative(currencyIn, amountIn);
-		else if (wrapIn == 2) unwrapNative(currencyIn, amountIn);
+		if (wrapIn == 2) unwrapNative(currencyIn, amountIn);
 
 		bool zeroForOne = currencyIn < currencyOut;
 
