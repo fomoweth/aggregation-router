@@ -1,33 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
-import {UniswapV3Adapter} from "src/adapters/UniswapV3Adapter.sol";
+import {UniswapV2Adapter} from "src/adapters/UniswapV2Adapter.sol";
 import {Create3} from "src/libraries/Create3.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {FullMath} from "src/libraries/FullMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {Constants} from "test/utils/Constants.sol";
+import {V2SwapTest} from "./V2Swap.t.sol";
 
-// forge test -vvv --match-path test/UniswapV3Adapter.t.sol
+// forge test -vvv --match-path test/v2/UniswapV2Adapter.t.sol
 
-contract UniswapV3AdapterTest is Test, Constants {
+contract UniswapV2AdapterTest is V2SwapTest {
 	using CurrencyLibrary for Currency;
 
-	address constant WBTC_ETH_3000_POOL = 0xCBCdF9626bC03E24f779434178A73a0B4bad62eD;
+	address constant WBTC_ETH_POOL = 0xBb2b8038a1640196FbE3e38816F3e67Cba72D940;
 
-	UniswapV3Adapter adapter;
+	UniswapV2Adapter adapter;
 
-	uint256 ethAmount = 20 ether;
+	function setUp() public virtual override {
+		super.setUp();
 
-	function setUp() public {
-		vm.createSelectFork(vm.envString("RPC_ETHEREUM"), FORK_BLOCK);
-
-		adapter = UniswapV3Adapter(
+		adapter = UniswapV2Adapter(
 			payable(
 				Create3.create3(
-					keccak256(abi.encodePacked("UNISWAP_V3_ADAPTER", address(this))),
-					abi.encodePacked(type(UniswapV3Adapter).creationCode, abi.encode(WETH, UNISWAP_V3_ID))
+					keccak256(abi.encodePacked("UNISWAP_V2_ADAPTER", address(this))),
+					abi.encodePacked(type(UniswapV2Adapter).creationCode, abi.encode(WETH, UNISWAP_V2_ID))
 				)
 			)
 		);
@@ -40,11 +37,11 @@ contract UniswapV3AdapterTest is Test, Constants {
 		assertEq(currency0().balanceOf(address(adapter)), amountIn);
 
 		(address pool, uint256 expected) = adapter.query(currency0(), currency1(), amountIn);
-		assertEq(pool, WBTC_ETH_3000_POOL);
+		assertEq(pool, WBTC_ETH_POOL);
 
 		bytes32 data = pack(pool, 0, 1, NO_ACTION, NO_ACTION);
 
-		uint256 amountOut = adapter.uniswapV3Swap(data);
+		uint256 amountOut = adapter.uniswapV2Swap(data);
 		assertEq(amountOut, expected);
 
 		uint256 balance0 = currency0().balanceOf(address(adapter));
@@ -61,11 +58,11 @@ contract UniswapV3AdapterTest is Test, Constants {
 		assertEq(currency1().balanceOf(address(adapter)), amountIn);
 
 		(address pool, uint256 expected) = adapter.query(currency1(), currency0(), amountIn);
-		assertEq(pool, WBTC_ETH_3000_POOL);
+		assertEq(pool, WBTC_ETH_POOL);
 
 		bytes32 data = pack(pool, 1, 0, NO_ACTION, NO_ACTION);
 
-		uint256 amountOut = adapter.uniswapV3Swap(data);
+		uint256 amountOut = adapter.uniswapV2Swap(data);
 		assertEq(amountOut, expected);
 
 		uint256 balance0 = currency0().balanceOf(address(adapter));
@@ -82,11 +79,11 @@ contract UniswapV3AdapterTest is Test, Constants {
 		assertEq(currency0().balanceOf(address(adapter)), amountIn);
 
 		(address pool, uint256 expected) = adapter.query(currency0(), currency1(), amountIn);
-		assertEq(pool, WBTC_ETH_3000_POOL);
+		assertEq(pool, WBTC_ETH_POOL);
 
 		bytes32 data = pack(pool, 0, 1, NO_ACTION, UNWRAP_ETH);
 
-		uint256 amountOut = adapter.uniswapV3Swap(data);
+		uint256 amountOut = adapter.uniswapV2Swap(data);
 		assertEq(amountOut, expected);
 
 		uint256 balance0 = currency0().balanceOf(address(adapter));
@@ -103,56 +100,23 @@ contract UniswapV3AdapterTest is Test, Constants {
 		assertEq(address(adapter).balance, amountIn);
 
 		(address pool, uint256 expected) = adapter.query(currency1(), currency0(), amountIn);
-		assertEq(pool, WBTC_ETH_3000_POOL);
+		assertEq(pool, WBTC_ETH_POOL);
 
 		bytes32 data = pack(pool, 1, 0, WRAP_ETH, NO_ACTION);
 
-		uint256 amountOut = adapter.uniswapV3Swap(data);
+		uint256 amountOut = adapter.uniswapV2Swap(data);
 		assertEq(amountOut, expected);
 	}
 
-	function currency0() internal pure returns (Currency) {
+	function currency0() internal pure virtual override returns (Currency) {
 		return WBTC;
 	}
 
-	function currency1() internal pure returns (Currency) {
+	function currency1() internal pure virtual override returns (Currency) {
 		return WETH;
 	}
 
-	function feed() internal pure returns (address) {
+	function feed() internal pure virtual override returns (address) {
 		return 0xdeb288F737066589598e9214E782fa5A8eD689e8;
-	}
-
-	function deal(Currency currency, address account, uint256 amount) internal {
-		deal(currency.toAddress(), account, amount);
-	}
-
-	function latestAnswer(address aggregator) internal view returns (uint256 answer) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			mstore(ptr, 0x50d25bcd00000000000000000000000000000000000000000000000000000000)
-
-			if iszero(staticcall(gas(), aggregator, ptr, 0x04, 0x00, 0x20)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			if iszero(slt(mload(0x00), 0x00)) {
-				answer := mload(0x00)
-			}
-		}
-	}
-
-	function pack(
-		address pool,
-		uint8 i,
-		uint8 j,
-		uint8 wrapIn,
-		uint8 wrapOut
-	) internal pure returns (bytes32 data) {
-		assembly ("memory-safe") {
-			data := add(pool, add(shl(160, i), add(shl(168, j), add(shl(176, wrapIn), shl(184, wrapOut)))))
-		}
 	}
 }
