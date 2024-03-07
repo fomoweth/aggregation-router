@@ -39,4 +39,5 @@ abstract contract Constants {
 	uint256 constant FRAX_V2_ID = 4;
 	uint256 constant PANCAKE_V3_ID = 5;
 	uint256 constant PANCAKE_V2_ID = 6;
+	uint256 constant CURVE_ID = 7;
 }
