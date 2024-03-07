@@ -116,6 +116,6 @@ contract UniswapV2AdapterTest is V2SwapTest {
 	}
 
 	function feed() internal pure virtual override returns (address) {
-		return 0xdeb288F737066589598e9214E782fa5A8eD689e8;
+		return BTC_ETH_FEED;
 	}
 }
