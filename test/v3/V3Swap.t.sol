@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Currency} from "src/types/Currency.sol";
 import {Constants} from "test/utils/Constants.sol";
 
-abstract contract V2SwapTest is Test, Constants {
+abstract contract V3SwapTest is Test, Constants {
 	uint256 ethAmount = 20 ether;
 
 	function setUp() public virtual {
