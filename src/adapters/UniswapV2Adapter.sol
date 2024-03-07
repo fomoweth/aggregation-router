@@ -15,8 +15,6 @@ contract UniswapV2Adapter is BaseAdapter {
 	using PathDecoder for bytes32;
 	using UniswapV2Library for address;
 
-	error InsufficientReserves();
-
 	address internal constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
 
 	bytes32 internal constant UNISWAP_V2_PAIR_INIT_CODE_HASH =
@@ -42,7 +40,9 @@ contract UniswapV2Adapter is BaseAdapter {
 
 		bool zeroForOne = currencyIn < currencyOut;
 
-		if ((amountOut = pool.getAmountOut(amountIn, zeroForOne)) == 0) revert InsufficientReserves();
+		if ((amountOut = pool.getAmountOut(amountIn, zeroForOne)) == 0) {
+			revert Errors.InsufficientReserves();
+		}
 
 		(uint256 amount0Out, uint256 amount1Out) = zeroForOne
 			? (uint256(0), amountOut)

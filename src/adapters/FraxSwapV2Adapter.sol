@@ -7,22 +7,22 @@ import {UniswapV2Library} from "src/libraries/UniswapV2Library.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
-/// @title SushiV2Adapter
-/// @notice Performs swaps to be handled on SushiSwap V2 pools
+/// @title FraxSwapV2Adapter
+/// @notice Performs swaps to be handled on FraxSwap pools
 
-contract SushiV2Adapter is BaseAdapter {
+contract FraxSwapV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 	using UniswapV2Library for address;
 
-	address constant SUSHI_V2_FACTORY = 0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac;
+	address internal constant FRAXSWAP_FACTORY = 0x43eC799eAdd63848443E2347C49f5f52e8Fe0F6f;
 
-	bytes32 constant SUSHI_V2_PAIR_INIT_CODE_HASH =
-		0xe18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303;
+	bytes32 internal constant FRAXSWAP_PAIR_INIT_CODE_HASH =
+		0x4ce0b4ab368f39e4bd03ec712dfc405eb5a36cdb0294b3887b441cd1c743ced3;
 
 	constructor(Currency _wrappedNative, uint256 _id) BaseAdapter(_wrappedNative, _id) {}
 
-	function sushiV2Swap(bytes32 data) external payable returns (uint256 amountOut) {
+	function fraxV2Swap(bytes32 data) external payable returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = data.decode();
 
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
@@ -81,9 +81,9 @@ contract SushiV2Adapter is BaseAdapter {
 
 			let salt := keccak256(ptr, 0x28)
 
-			mstore(ptr, add(hex"ff", shl(0x58, SUSHI_V2_FACTORY)))
+			mstore(ptr, add(hex"ff", shl(0x58, FRAXSWAP_FACTORY)))
 			mstore(add(ptr, 0x15), salt)
-			mstore(add(ptr, 0x35), SUSHI_V2_PAIR_INIT_CODE_HASH)
+			mstore(add(ptr, 0x35), FRAXSWAP_PAIR_INIT_CODE_HASH)
 
 			pair := and(
 				keccak256(ptr, 0x55),

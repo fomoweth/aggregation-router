@@ -20,5 +20,7 @@ library Errors {
 
 	error InsufficientBalance();
 
+	error InsufficientReserves();
+
 	error OutOfBound();
 }

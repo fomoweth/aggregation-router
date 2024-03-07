@@ -31,7 +31,7 @@ contract SushiV3AdapterTest is V3SwapTest {
 		);
 	}
 
-	function testSwap0For1OnSushiV3() public {
+	function testSwap0For1OnSushiSwapV3() public {
 		uint256 amountIn = FullMath.mulDiv(ethAmount, 10 ** currency0().decimals(), latestAnswer(feed()));
 
 		deal(currency0(), address(adapter), amountIn);
@@ -52,7 +52,7 @@ contract SushiV3AdapterTest is V3SwapTest {
 		assertEq(balance1, amountOut);
 	}
 
-	function testSwap1For0OnSushiV3() public {
+	function testSwap1For0OnSushiSwapV3() public {
 		uint256 amountIn = ethAmount;
 
 		deal(currency1(), address(adapter), amountIn);
@@ -73,7 +73,7 @@ contract SushiV3AdapterTest is V3SwapTest {
 		assertEq(balance1, 0);
 	}
 
-	function testSwap0For1UnwrapETHAfterOnSushiV3() public {
+	function testSwap0For1UnwrapETHAfterOnSushiSwapV3() public {
 		uint256 amountIn = FullMath.mulDiv(ethAmount, 10 ** currency0().decimals(), latestAnswer(feed()));
 
 		deal(currency0(), address(adapter), amountIn);
@@ -94,7 +94,7 @@ contract SushiV3AdapterTest is V3SwapTest {
 		assertEq(balance1, amountOut);
 	}
 
-	function testSwap1For0WrapETHBeforeOnSushiV3() public {
+	function testSwap1For0WrapETHBeforeOnSushiSwapV3() public {
 		uint256 amountIn = ethAmount;
 
 		deal(address(adapter), amountIn);
