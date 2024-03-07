@@ -42,22 +42,23 @@ library UniswapV2Library {
 	) internal view returns (uint256 reserveIn, uint256 reserveOut) {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
+			let res := add(ptr, 0x04)
 
 			mstore(ptr, 0x0902f1ac00000000000000000000000000000000000000000000000000000000)
 
-			if iszero(staticcall(gas(), pair, ptr, 0x04, 0x00, 0x60)) {
+			if iszero(staticcall(gas(), pair, ptr, 0x04, res, 0x60)) {
 				returndatacopy(ptr, 0x00, returndatasize())
 				revert(ptr, returndatasize())
 			}
 
 			switch zeroForOne
 			case 0x00 {
-				reserveOut := mload(0x00)
-				reserveIn := mload(0x20)
+				reserveOut := mload(res)
+				reserveIn := mload(add(res, 0x20))
 			}
 			default {
-				reserveIn := mload(0x00)
-				reserveOut := mload(0x20)
+				reserveIn := mload(res)
+				reserveOut := mload(add(res, 0x20))
 			}
 		}
 	}
