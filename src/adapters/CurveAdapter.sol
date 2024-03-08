@@ -14,36 +14,40 @@ contract CurveAdapter is BaseAdapter {
 
 	address internal constant META_REGISTRY = 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC;
 
-	uint256 internal constant IS_UNDERLYING_FLAG_IDX = 0;
+	uint8 internal constant IS_UNDERLYING_FLAG_IDX = 0;
 
-	constructor(Currency _wrappedNative, uint256 _id) BaseAdapter(_wrappedNative, _id) {}
+	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
-	function curveSwap(bytes32 data) external payable returns (uint256 amountOut) {
-		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = data.decode();
+	function curveSwap(bytes32 path) external payable returns (uint256) {
+		return _exchange(path);
+	}
 
+	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-		if (i == j) revert Errors.IdenticalCurrencyIds();
 
-		bool isUnderlying = data.getFlag(IS_UNDERLYING_FLAG_IDX);
+		bool isUnderlying = path.getFlag(IS_UNDERLYING_FLAG_IDX);
 
 		Currency currencyIn = getPoolAsset(pool, i, isUnderlying);
 		Currency currencyOut = getPoolAsset(pool, j, isUnderlying);
 
-		if (wrapIn == 1) wrapNative(currencyIn, address(this).balance);
+		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapNative(currencyIn, amountIn);
+		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
 
-		currencyIn.approve(pool, amountIn);
+		if (currencyIn.allowance(pool, address(this)) < amountIn) {
+			currencyIn.approve(pool, amountIn);
+		}
 
 		exchange(pool, i, j, amountIn, 0, currencyIn.isNative() ? amountIn : 0, isUnderlying);
 
 		amountOut = currencyOut.balanceOfSelf();
 
-		if (wrapOut == 1) wrapNative(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapNative(currencyOut, amountOut);
+		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
+		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function findPoolsFor(Currency currencyIn, Currency currencyOut) public view returns (address[] memory) {
@@ -169,6 +173,13 @@ contract CurveAdapter is BaseAdapter {
 
 			numAssets := mload(0x00)
 		}
+	}
+
+	function _quote(
+		bytes32 path,
+		uint256 amountIn
+	) internal view virtual override returns (uint256 amountOut) {
+		//
 	}
 
 	function _query(

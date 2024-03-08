@@ -10,11 +10,23 @@ import {Currency} from "src/types/Currency.sol";
 abstract contract BaseAdapter is IAdapter {
 	uint256 public immutable id;
 
-	Currency internal immutable WRAPPED_NATIVE;
+	Currency internal immutable WETH;
 
-	constructor(Currency _wrappedNative, uint256 _id) {
-		WRAPPED_NATIVE = _wrappedNative;
+	uint8 internal constant NO_ACTION = 0;
+	uint8 internal constant WRAP_ETH = 1;
+	uint8 internal constant UNWRAP_ETH = 2;
+
+	constructor(uint256 _id, Currency _weth) {
 		id = _id;
+		WETH = _weth;
+	}
+
+	function exchange(bytes32 path) external payable returns (uint256) {
+		return _exchange(path);
+	}
+
+	function quote(bytes32 path, uint256 amountIn) external view returns (uint256 amountOut) {
+		if (amountIn != 0) amountOut = _quote(path, amountIn);
 	}
 
 	function query(
@@ -22,15 +34,16 @@ abstract contract BaseAdapter is IAdapter {
 		Currency currencyOut,
 		uint256 amountIn
 	) external view returns (address pool, uint256 amountOut) {
-		if (currencyIn == currencyOut || amountIn == 0) return (address(0), 0);
-		return _query(currencyIn, currencyOut, amountIn);
+		if (currencyIn != currencyOut && amountIn != 0) {
+			(pool, amountOut) = _query(currencyIn, currencyOut, amountIn);
+		}
 	}
 
-	function wrapNative(Currency currency, uint256 amount) internal {
-		if (currency.isNative()) currency = WRAPPED_NATIVE;
+	function wrapETH(Currency currency, uint256 amount) internal {
+		if (currency.isNative()) currency = WETH;
 
-		if (currency != WRAPPED_NATIVE) revert Errors.InvalidCurrency();
-		if (amount == 0) revert Errors.AmountZero();
+		if (currency != WETH) revert Errors.InvalidCurrency();
+		if (amount == 0) revert Errors.ZeroAmount();
 
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
@@ -44,11 +57,11 @@ abstract contract BaseAdapter is IAdapter {
 		}
 	}
 
-	function unwrapNative(Currency currency, uint256 amount) internal {
-		if (currency.isNative()) currency = WRAPPED_NATIVE;
+	function unwrapWETH(Currency currency, uint256 amount) internal {
+		if (currency.isNative()) currency = WETH;
 
-		if (currency != WRAPPED_NATIVE) revert Errors.InvalidCurrency();
-		if (amount == 0) revert Errors.AmountZero();
+		if (currency != WETH) revert Errors.InvalidCurrency();
+		if (amount == 0) revert Errors.ZeroAmount();
 
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
@@ -62,6 +75,10 @@ abstract contract BaseAdapter is IAdapter {
 			}
 		}
 	}
+
+	function _exchange(bytes32 path) internal virtual returns (uint256 amountOut);
+
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual returns (uint256 amountOut);
 
 	function _query(
 		Currency currencyIn,

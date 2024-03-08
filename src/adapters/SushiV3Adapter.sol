@@ -25,7 +25,7 @@ contract SushiV3Adapter is BaseAdapter {
 	bytes32 internal constant SUSHI_V3_POOL_INIT_CODE_HASH =
 		0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
 
-	constructor(Currency _wrappedNative, uint256 _id) BaseAdapter(_wrappedNative, _id) {}
+	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
 	function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
 		Currency currencyIn;
@@ -49,21 +49,23 @@ contract SushiV3Adapter is BaseAdapter {
 		currencyIn.transfer(pool, amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta));
 	}
 
-	function sushiV3Swap(bytes32 data) external payable returns (uint256 amountOut) {
-		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = data.decode();
+	function sushiV3Swap(bytes32 path) external payable returns (uint256 amountOut) {
+		return _exchange(path);
+	}
 
+	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		(Currency currencyIn, Currency currencyOut, uint24 fee) = pool.getPoolKey();
 		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
-		if (wrapIn == 1) wrapNative(currencyIn, address(this).balance);
+		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapNative(currencyIn, amountIn);
+		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
 
 		bool zeroForOne = currencyIn < currencyOut;
 
@@ -77,8 +79,8 @@ contract SushiV3Adapter is BaseAdapter {
 
 		amountOut = uint256(-(zeroForOne ? amount1Delta : amount0Delta));
 
-		if (wrapOut == 1) wrapNative(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapNative(currencyOut, amountOut);
+		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
+		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function _query(
@@ -102,18 +104,14 @@ contract SushiV3Adapter is BaseAdapter {
 		}
 	}
 
-	function _quote(bytes32 data, uint256 amountIn) internal view returns (uint256) {
-		if (amountIn == 0) return 0;
-
-		(address pool, uint8 i, uint8 j, , ) = data.decode();
-
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-		if (i == j) revert Errors.IdenticalCurrencyIds();
+
+		bool zeroForOne = i == 0;
 
 		(Currency currencyIn, Currency currencyOut, uint24 fee) = pool.getPoolKey();
-		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
-
-		bool zeroForOne = currencyIn < currencyOut;
+		if (!zeroForOne) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
 		(int256 amount0Delta, int256 amount1Delta) = pool.computeDeltaAmounts(
 			fee,

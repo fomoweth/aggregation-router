@@ -2,9 +2,17 @@
 pragma solidity ^0.8.20;
 
 library Errors {
-	error AddressZero();
+	error ZeroAddress();
 
-	error AmountZero();
+	error ZeroAmount();
+
+	error ZeroBytes();
+
+	error ZeroBytes32();
+
+	error EmptyData();
+
+	error InvalidAction();
 
 	error IdenticalCurrencyIds();
 

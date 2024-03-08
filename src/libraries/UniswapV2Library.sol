@@ -63,7 +63,10 @@ library UniswapV2Library {
 		}
 	}
 
-	function getPairAssets(address pair) internal view returns (Currency currency0, Currency currency1) {
+	function getPairAssets(
+		address pair,
+		bool zeroForOne
+	) internal view returns (Currency currencyA, Currency currencyB) {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 
@@ -77,29 +80,15 @@ library UniswapV2Library {
 				revert(add(ptr, 0x04), 0x04)
 			}
 
-			currency0 := mload(add(ptr, 0x08))
-			currency1 := mload(add(ptr, 0x28))
-		}
-	}
-
-	function getPair(
-		address factory,
-		Currency currencyA,
-		Currency currencyB
-	) internal view returns (address pair) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			mstore(ptr, 0xe6a4390500000000000000000000000000000000000000000000000000000000)
-			mstore(add(ptr, 0x04), and(currencyA, 0xffffffffffffffffffffffffffffffffffffffff))
-			mstore(add(ptr, 0x24), and(currencyB, 0xffffffffffffffffffffffffffffffffffffffff))
-
-			if iszero(staticcall(gas(), factory, ptr, 0x44, 0x00, 0x20)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
+			switch zeroForOne
+			case 0x00 {
+				currencyB := mload(add(ptr, 0x08))
+				currencyA := mload(add(ptr, 0x28))
 			}
-
-			pair := mload(0x00)
+			default {
+				currencyA := mload(add(ptr, 0x08))
+				currencyB := mload(add(ptr, 0x28))
+			}
 		}
 	}
 
@@ -123,8 +112,6 @@ library UniswapV2Library {
 		uint256 reserveOut,
 		uint256 amountIn
 	) internal pure returns (uint256 amountOut) {
-		if (reserveIn == 0 || reserveOut == 0 || amountIn == 0) return 0;
-
 		assembly ("memory-safe") {
 			if iszero(or(iszero(reserveIn), iszero(reserveOut))) {
 				amountOut := div(

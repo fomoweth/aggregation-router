@@ -85,9 +85,31 @@ library UniswapV3Library {
 
 		bool exactInput = amountSpecified > 0;
 
-		int24 tickSpacing = int24(fee != 100 ? fee / 60 : 1);
+		int24 tickSpacing;
+		uint160 sqrtPriceX96;
+		int24 tick;
 
-		(uint160 sqrtPriceX96, int24 tick, , , , ) = slot0(pool);
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x3850c7bd00000000000000000000000000000000000000000000000000000000) // slot()
+
+			if iszero(staticcall(gas(), pool, ptr, 0x04, add(ptr, 0x04), 0xc0)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+
+			sqrtPriceX96 := mload(add(ptr, 0x04))
+			tick := mload(add(ptr, 0x24))
+
+			switch eq(fee, 100)
+			case 0x00 {
+				tickSpacing := div(fee, 0x32)
+			}
+			default {
+				tickSpacing := 0x01
+			}
+		}
 
 		require(
 			zeroForOne
@@ -156,7 +178,21 @@ library UniswapV3Library {
 
 			if (state.sqrtPriceX96 == step.sqrtPriceNextX96) {
 				if (step.initialized) {
-					(, int128 liquidityNet, , , , , , ) = ticks(pool, tick);
+					int128 liquidityNet;
+
+					assembly ("memory-safe") {
+						let ptr := mload(0x40)
+
+						mstore(ptr, 0xf30dba9300000000000000000000000000000000000000000000000000000000) // ticks(int24)
+						mstore(add(ptr, 0x04), tick)
+
+						if iszero(staticcall(gas(), pool, ptr, 0x24, add(ptr, 0x24), 0x100)) {
+							returndatacopy(ptr, 0x00, returndatasize())
+							revert(ptr, returndatasize())
+						}
+
+						liquidityNet := mload(add(ptr, 0x44))
+					}
 
 					unchecked {
 						if (zeroForOne) liquidityNet = -liquidityNet;
@@ -229,76 +265,34 @@ library UniswapV3Library {
 		}
 	}
 
-	function slot0(
-		address pool
-	)
-		internal
-		view
-		returns (
-			uint160 sqrtPriceX96,
-			int24 tick,
-			uint16 observationIndex,
-			uint16 observationCardinality,
-			uint16 observationCardinalityNext,
-			uint8 feeProtocol
-		)
-	{
+	function computePoolAddress(
+		address factory,
+		bytes32 poolInitCodeHash,
+		Currency currency0,
+		Currency currency1,
+		uint24 fee
+	) internal pure returns (address pool) {
 		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-			let res := add(ptr, 0x04)
-
-			mstore(ptr, 0x3850c7bd00000000000000000000000000000000000000000000000000000000)
-
-			if iszero(staticcall(gas(), pool, ptr, 0x04, res, 0xc0)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
+			if gt(currency0, currency1) {
+				let temp := currency0
+				currency0 := currency1
+				currency1 := temp
 			}
 
-			sqrtPriceX96 := mload(res)
-			tick := mload(add(res, 0x20))
-			observationIndex := mload(add(res, 0x40))
-			observationCardinality := mload(add(res, 0x60))
-			observationCardinalityNext := mload(add(res, 0x80))
-			feeProtocol := mload(add(res, 0xa0))
-		}
-	}
-
-	function ticks(
-		address pool,
-		int24 tick
-	)
-		internal
-		view
-		returns (
-			uint128 liquidityGross,
-			int128 liquidityNet,
-			uint256 feeGrowthOutside0X128,
-			uint256 feeGrowthOutside1X128,
-			int56 tickCumulativeOutside,
-			uint160 secondsPerLiquidityOutsideX128,
-			uint32 secondsOutside,
-			bool initialized
-		)
-	{
-		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 
-			mstore(ptr, 0xf30dba9300000000000000000000000000000000000000000000000000000000)
-			mstore(add(ptr, 0x04), tick)
+			mstore(add(ptr, 0x15), currency0)
+			mstore(add(ptr, 0x35), currency1)
+			mstore(add(ptr, 0x55), fee)
 
-			if iszero(staticcall(gas(), pool, ptr, 0x24, add(ptr, 0x24), 0x100)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
+			mstore(ptr, add(hex"ff", shl(0x58, factory)))
+			mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
+			mstore(add(ptr, 0x35), poolInitCodeHash)
 
-			liquidityGross := mload(add(ptr, 0x24))
-			liquidityNet := mload(add(ptr, 0x44))
-			feeGrowthOutside0X128 := mload(add(ptr, 0x64))
-			feeGrowthOutside1X128 := mload(add(ptr, 0x84))
-			tickCumulativeOutside := mload(add(ptr, 0xa4))
-			secondsPerLiquidityOutsideX128 := mload(add(ptr, 0xc4))
-			secondsOutside := mload(add(ptr, 0xe4))
-			initialized := mload(add(ptr, 0x104))
+			pool := and(
+				keccak256(ptr, 0x55),
+				0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+			)
 		}
 	}
 }

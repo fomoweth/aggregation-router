@@ -18,14 +18,14 @@ contract PancakeV3Adapter is BaseAdapter {
 	using SafeCast for uint256;
 	using UniswapV3Library for address;
 
-	address constant PANCAKE_V3_POOL_DEPLOYER = 0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9;
-
 	address constant PANCAKE_V3_FACTORY = 0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865;
+
+	address constant PANCAKE_V3_POOL_DEPLOYER = 0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9;
 
 	bytes32 constant PANCAKE_V3_POOL_INIT_CODE_HASH =
 		0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2;
 
-	constructor(Currency _wrappedNative, uint256 _id) BaseAdapter(_wrappedNative, _id) {}
+	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
 	// 0x23a69e75
 	function pancakeV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
@@ -50,21 +50,23 @@ contract PancakeV3Adapter is BaseAdapter {
 		currencyIn.transfer(pool, amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta));
 	}
 
-	function pancakeV3Swap(bytes32 data) external payable returns (uint256 amountOut) {
-		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = data.decode();
+	function pancakeV3Swap(bytes32 path) external payable returns (uint256 amountOut) {
+		return _exchange(path);
+	}
 
+	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		(Currency currencyIn, Currency currencyOut, uint24 fee) = pool.getPoolKey();
 		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
-		if (wrapIn == 1) wrapNative(currencyIn, address(this).balance);
+		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapNative(currencyIn, amountIn);
+		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
 
 		bool zeroForOne = currencyIn < currencyOut;
 
@@ -78,8 +80,15 @@ contract PancakeV3Adapter is BaseAdapter {
 
 		amountOut = uint256(-(zeroForOne ? amount1Delta : amount0Delta));
 
-		if (wrapOut == 1) wrapNative(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapNative(currencyOut, amountOut);
+		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
+		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
+	}
+
+	function _quote(
+		bytes32 path,
+		uint256 amountIn
+	) internal view virtual override returns (uint256 amountOut) {
+		//
 	}
 
 	function _query(

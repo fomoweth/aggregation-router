@@ -20,25 +20,26 @@ contract UniswapV2Adapter is BaseAdapter {
 	bytes32 internal constant UNISWAP_V2_PAIR_INIT_CODE_HASH =
 		0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f;
 
-	constructor(Currency _wrappedNative, uint256 _id) BaseAdapter(_wrappedNative, _id) {}
+	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
-	function uniswapV2Swap(bytes32 data) external payable returns (uint256 amountOut) {
-		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = data.decode();
+	function uniswapV2Swap(bytes32 path) external payable returns (uint256) {
+		return _exchange(path);
+	}
 
+	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-		if (i == j) revert Errors.IdenticalCurrencyIds();
 
-		(Currency currencyIn, Currency currencyOut) = pool.getPairAssets();
-		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
+		bool zeroForOne = i == 0;
 
-		if (wrapIn == 1) wrapNative(currencyIn, address(this).balance);
+		(Currency currencyIn, Currency currencyOut) = pool.getPairAssets(zeroForOne);
+
+		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapNative(currencyIn, amountIn);
-
-		bool zeroForOne = currencyIn < currencyOut;
+		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
 
 		if ((amountOut = pool.getAmountOut(amountIn, zeroForOne)) == 0) {
 			revert Errors.InsufficientReserves();
@@ -52,8 +53,15 @@ contract UniswapV2Adapter is BaseAdapter {
 
 		pool.swap(amount0Out, amount1Out, address(this));
 
-		if (wrapOut == 1) wrapNative(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapNative(currencyOut, amountOut);
+		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
+		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
+	}
+
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+
+		return pool.getAmountOut(amountIn, i == 0);
 	}
 
 	function _query(
