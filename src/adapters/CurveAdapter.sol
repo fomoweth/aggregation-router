@@ -38,7 +38,7 @@ contract CurveAdapter is BaseAdapter {
 
 		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
 
-		if (currencyIn.allowance(pool, address(this)) < amountIn) {
+		if (currencyIn.allowance(address(this), pool) < amountIn) {
 			currencyIn.approve(pool, amountIn);
 		}
 
