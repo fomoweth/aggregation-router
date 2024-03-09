@@ -7,6 +7,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title CurveAdapter
+/// @notice Performs swaps to be handled on Curve pools
 
 contract CurveAdapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
@@ -50,136 +51,11 @@ contract CurveAdapter is BaseAdapter {
 		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
 	}
 
-	function findPoolsFor(Currency currencyIn, Currency currencyOut) public view returns (address[] memory) {
-		bytes memory returndata;
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
 
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			mstore(ptr, 0xa064072b00000000000000000000000000000000000000000000000000000000) // find_pools_for_coins(address,address)
-			mstore(add(ptr, 0x04), and(currencyIn, 0xffffffffffffffffffffffffffffffffffffffff))
-			mstore(add(ptr, 0x24), and(currencyOut, 0xffffffffffffffffffffffffffffffffffffffff))
-
-			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x64, 0x00, 0x00)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			mstore(0x40, add(returndata, add(returndatasize(), 0x20)))
-			mstore(returndata, returndatasize())
-			returndatacopy(add(returndata, 0x20), 0x00, returndatasize())
-		}
-
-		return abi.decode(returndata, (address[]));
-	}
-
-	function findPoolFor(Currency currencyIn, Currency currencyOut) public view returns (address pool) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			mstore(ptr, 0xa87df06c00000000000000000000000000000000000000000000000000000000) // find_pool_for_coins(address,address)
-			mstore(add(ptr, 0x04), and(currencyIn, 0xffffffffffffffffffffffffffffffffffffffff))
-			mstore(add(ptr, 0x24), and(currencyOut, 0xffffffffffffffffffffffffffffffffffffffff))
-
-			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x64, 0x00, 0x20)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			pool := mload(0x00)
-		}
-	}
-
-	function getCoinIndices(
-		address pool,
-		Currency currencyIn,
-		Currency currencyOut
-	) public view returns (uint8 i, uint8 j, bool isUnderlying) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-			let res := add(ptr, 0x64)
-
-			mstore(ptr, 0xeb85226d00000000000000000000000000000000000000000000000000000000) // get_coin_indices(address,address,address)
-			mstore(add(ptr, 0x04), and(pool, 0xffffffffffffffffffffffffffffffffffffffff))
-			mstore(add(ptr, 0x24), and(currencyIn, 0xffffffffffffffffffffffffffffffffffffffff))
-			mstore(add(ptr, 0x44), and(currencyOut, 0xffffffffffffffffffffffffffffffffffffffff))
-
-			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x64, res, 0x60)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			i := mload(res)
-			j := mload(add(res, 0x20))
-			isUnderlying := mload(add(res, 0x40))
-		}
-	}
-
-	function getPoolAssets(address pool, bool isUnderlying) public view returns (Currency[] memory assets) {
-		bytes memory returndata;
-
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			switch isUnderlying
-			case 0x00 {
-				mstore(ptr, 0x9ac90d3d00000000000000000000000000000000000000000000000000000000) // get_coins(address)
-			}
-			default {
-				mstore(ptr, 0xa77576ef00000000000000000000000000000000000000000000000000000000) // get_underlying_coins(address)
-			}
-
-			mstore(add(ptr, 0x04), and(pool, 0xffffffffffffffffffffffffffffffffffffffff))
-
-			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x24, 0x00, 0x00)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			mstore(0x40, add(returndata, add(returndatasize(), 0x60)))
-			mstore(returndata, add(returndatasize(), 0x40))
-			mstore(add(returndata, 0x20), 0x20)
-			mstore(add(returndata, 0x40), div(returndatasize(), 0x20))
-			returndatacopy(add(returndata, 0x60), 0x00, returndatasize())
-		}
-
-		assets = abi.decode(returndata, (Currency[]));
-
-		uint256 length = getNumAssets(pool, isUnderlying);
-
-		assembly ("memory-safe") {
-			mstore(assets, length)
-		}
-	}
-
-	function getNumAssets(address pool, bool isUnderlying) public view returns (uint256 numAssets) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			switch isUnderlying
-			case 0x00 {
-				mstore(ptr, 0x940494f100000000000000000000000000000000000000000000000000000000) // get_n_coins(address)
-			}
-			default {
-				mstore(ptr, 0xa77576ef00000000000000000000000000000000000000000000000000000000) // get_n_underlying_coins(address)
-			}
-
-			mstore(add(ptr, 0x04), and(pool, 0xffffffffffffffffffffffffffffffffffffffff))
-
-			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x24, 0x00, 0x20)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			numAssets := mload(0x00)
-		}
-	}
-
-	function _quote(
-		bytes32 path,
-		uint256 amountIn
-	) internal view virtual override returns (uint256 amountOut) {
-		//
+		return getDy(pool, i, j, amountIn, path.getFlag(IS_UNDERLYING_FLAG_IDX));
 	}
 
 	function _query(
@@ -284,6 +160,48 @@ contract CurveAdapter is BaseAdapter {
 			}
 
 			dy := mload(0x00)
+		}
+	}
+
+	function findPoolFor(Currency currencyIn, Currency currencyOut) internal view returns (address pool) {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0xa87df06c00000000000000000000000000000000000000000000000000000000) // find_pool_for_coins(address,address)
+			mstore(add(ptr, 0x04), and(currencyIn, 0xffffffffffffffffffffffffffffffffffffffff))
+			mstore(add(ptr, 0x24), and(currencyOut, 0xffffffffffffffffffffffffffffffffffffffff))
+
+			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x64, 0x00, 0x20)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+
+			pool := mload(0x00)
+		}
+	}
+
+	function getCoinIndices(
+		address pool,
+		Currency currencyIn,
+		Currency currencyOut
+	) internal view returns (uint8 i, uint8 j, bool isUnderlying) {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+			let res := add(ptr, 0x64)
+
+			mstore(ptr, 0xeb85226d00000000000000000000000000000000000000000000000000000000) // get_coin_indices(address,address,address)
+			mstore(add(ptr, 0x04), and(pool, 0xffffffffffffffffffffffffffffffffffffffff))
+			mstore(add(ptr, 0x24), and(currencyIn, 0xffffffffffffffffffffffffffffffffffffffff))
+			mstore(add(ptr, 0x44), and(currencyOut, 0xffffffffffffffffffffffffffffffffffffffff))
+
+			if iszero(staticcall(gas(), META_REGISTRY, ptr, 0x64, res, 0x60)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+
+			i := mload(res)
+			j := mload(add(res, 0x20))
+			isUnderlying := mload(add(res, 0x40))
 		}
 	}
 
