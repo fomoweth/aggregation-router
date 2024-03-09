@@ -30,14 +30,6 @@ contract FRXETHWrapperTest is BaseTest {
 	}
 
 	function testStakeETH() public {
-		// console.log("adapter:", address(adapter)); 0x15399DCC4d61206c6C55f0223F302F00E751Ef89
-		// console.log("wrapFRXETH:"); 0xb8fd5ba0
-		// console.logBytes4(adapter.wrapFRXETH.selector);
-		// console.log("wrapSFRXETH:"); 0x41132c7e
-		// console.logBytes4(adapter.wrapSFRXETH.selector);
-		// console.log("unwrapSFRXETH:"); 0x254da26c
-		// console.logBytes4(adapter.unwrapSFRXETH.selector);
-
 		Currency currencyIn = ETH;
 		Currency currencyOut = FRXETH;
 
@@ -48,14 +40,14 @@ contract FRXETHWrapperTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, FRXETH.toAddress());
-		assertEq(expected, amountIn);
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, FRXETH.toAddress());
+		assertEq(queryAmount, amountIn);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected);
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 
 		uint256 balanceIn = currencyIn.balanceOf(address(adapter));
 		uint256 balanceOut = currencyOut.balanceOf(address(adapter));
@@ -76,14 +68,14 @@ contract FRXETHWrapperTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, FRXETH.toAddress());
-		assertEq(expected, amountIn);
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, FRXETH.toAddress());
+		assertEq(queryAmount, amountIn);
 
-		bytes32 data = pack(pool, i, j, UNWRAP_ETH, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, UNWRAP_ETH, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected);
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 
 		uint256 balanceIn = currencyIn.balanceOf(address(adapter));
 		uint256 balanceOut = currencyOut.balanceOf(address(adapter));
@@ -104,14 +96,14 @@ contract FRXETHWrapperTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, SFRXETH.toAddress());
-		assertGt(expected, 0);
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, SFRXETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected);
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 
 		uint256 balanceIn = currencyIn.balanceOf(address(adapter));
 		uint256 balanceOut = currencyOut.balanceOf(address(adapter));
@@ -132,15 +124,15 @@ contract FRXETHWrapperTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, SFRXETH.toAddress());
-		assertGt(expected, 0);
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, SFRXETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
+		uint256 amountOut = adapter.exchange(path);
 		// uint256 amountOut = adapter.wrapSFRXETH(amountIn);
-		assertEq(amountOut, expected);
+		assertEq(amountOut, queryAmount);
 
 		uint256 balanceIn = currencyIn.balanceOf(address(adapter));
 		uint256 balanceOut = currencyOut.balanceOf(address(adapter));
@@ -161,14 +153,14 @@ contract FRXETHWrapperTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, SFRXETH.toAddress());
-		assertGt(expected, 0);
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, SFRXETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected);
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 
 		uint256 balanceIn = currencyIn.balanceOf(address(adapter));
 		uint256 balanceOut = currencyOut.balanceOf(address(adapter));

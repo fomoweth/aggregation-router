@@ -35,16 +35,16 @@ contract FraxAdapterTest is BaseTest {
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, FRAX_V2_FRAX_ETH_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.fraxV2Swap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.fraxV2Swap(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testSwap1For0OnFraxSwapV2() public {
@@ -56,16 +56,16 @@ contract FraxAdapterTest is BaseTest {
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, FRAX_V2_FRAX_ETH_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.fraxV2Swap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.fraxV2Swap(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testSwap0For1unwrapWETHAfterOnFraxSwapV2() public {
@@ -77,16 +77,16 @@ contract FraxAdapterTest is BaseTest {
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, FRAX_V2_FRAX_ETH_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, UNWRAP_ETH);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, false);
 
-		uint256 amountOut = adapter.fraxV2Swap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.fraxV2Swap(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testSwap1For0WrapETHBeforeOnFraxSwapV2() public {
@@ -98,16 +98,20 @@ contract FraxAdapterTest is BaseTest {
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 		deal(address(adapter), amountIn);
-		assertEq(address(adapter).balance, amountIn, "!amountIn");
+		assertEq(address(adapter).balance, amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, FRAX_V2_FRAX_ETH_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, WRAP_ETH, NO_ACTION);
+		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, false);
 
-		uint256 amountOut = adapter.fraxV2Swap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.fraxV2Swap(path);
+		assertEq(amountOut, queryAmount);
+	}
+
+	function pool() internal pure returns (address) {
+		return FRAX_V2_FRAX_ETH_POOL;
 	}
 
 	function currency0() internal pure returns (Currency) {

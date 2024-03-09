@@ -42,16 +42,16 @@ contract PancakeV3AdapterTest is BaseTest {
 		uint256 amountIn = ethAmount;
 
 		deal(currency0(), address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, PANCAKE_V3_ETH_USDT_500_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.pancakeV3Swap(data);
-		assertApproxEqAbs(amountOut, expected, expected.percentMul(1), "!amountOut");
+		uint256 amountOut = adapter.pancakeV3Swap(path);
+		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
 	}
 
 	function testSwap1For0OnPancakeSwapV3() public {
@@ -64,16 +64,16 @@ contract PancakeV3AdapterTest is BaseTest {
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, PANCAKE_V3_ETH_USDT_500_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.pancakeV3Swap(data);
-		assertApproxEqAbs(amountOut, expected, expected.percentMul(1), "!amountOut");
+		uint256 amountOut = adapter.pancakeV3Swap(path);
+		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
 	}
 
 	function testSwap0For1WrapETHBeforeOnPancakeSwapV3() public {
@@ -86,16 +86,16 @@ contract PancakeV3AdapterTest is BaseTest {
 		uint256 amountIn = ethAmount;
 
 		deal(address(adapter), amountIn);
-		assertEq(address(adapter).balance, amountIn, "!amountIn");
+		assertEq(address(adapter).balance, amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, PANCAKE_V3_ETH_USDT_500_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, WRAP_ETH, NO_ACTION);
+		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, false);
 
-		uint256 amountOut = adapter.pancakeV3Swap(data);
-		assertApproxEqAbs(amountOut, expected, expected.percentMul(1), "!amountOut");
+		uint256 amountOut = adapter.pancakeV3Swap(path);
+		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
 	}
 
 	function testSwap1For0unwrapWETHAfterOnPancakeSwapV3() public {
@@ -108,16 +108,20 @@ contract PancakeV3AdapterTest is BaseTest {
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, PANCAKE_V3_ETH_USDT_500_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, UNWRAP_ETH);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, false);
 
-		uint256 amountOut = adapter.pancakeV3Swap(data);
-		assertApproxEqAbs(amountOut, expected, expected.percentMul(1), "!amountOut");
+		uint256 amountOut = adapter.pancakeV3Swap(path);
+		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
+	}
+
+	function pool() internal pure returns (address) {
+		return PANCAKE_V3_ETH_USDT_500_POOL;
 	}
 
 	function currency0() internal pure returns (Currency) {

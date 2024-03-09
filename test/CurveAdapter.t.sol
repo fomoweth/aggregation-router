@@ -31,18 +31,18 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyOut = WBTC;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, TRICRYPTO_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(pool, currencyIn, currencyOut);
+		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(queryPool, currencyIn, currencyOut);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, isUnderlying);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, isUnderlying);
 
-		uint256 amountOut = adapter.curveSwap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.curveSwap(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testSwapWETHForWBTCWrapETHBeforeOnCurve() public {
@@ -52,18 +52,18 @@ contract CurveAdapterTest is BaseTest {
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(address(adapter), amountIn);
-		assertEq(address(adapter).balance, amountIn, "!amountIn");
+		assertEq(address(adapter).balance, amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, TRICRYPTO_POOL, "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(pool, currencyIn, currencyOut);
+		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(queryPool, currencyIn, currencyOut);
 
-		bytes32 data = pack(pool, i, j, WRAP_ETH, NO_ACTION, isUnderlying);
+		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, isUnderlying);
 
-		uint256 amountOut = adapter.curveSwap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.curveSwap(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testSwapWBTCForWETHOnCurve() public {
@@ -71,18 +71,18 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyOut = WETH;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, TRICRYPTO_POOL);
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(pool, currencyIn, currencyOut);
+		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(queryPool, currencyIn, currencyOut);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, isUnderlying);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, isUnderlying);
 
-		uint256 amountOut = adapter.curveSwap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.curveSwap(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testSwapWBTCForWETHunwrapWETHAfterOnCurve() public {
@@ -90,18 +90,22 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyOut = WETH;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, TRICRYPTO_POOL);
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, pool());
+		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(pool, currencyIn, currencyOut);
+		(uint8 i, uint8 j, bool isUnderlying) = adapter.getCoinIndices(queryPool, currencyIn, currencyOut);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, UNWRAP_ETH, isUnderlying);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, isUnderlying);
 
-		uint256 amountOut = adapter.curveSwap(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.curveSwap(path);
+		assertEq(amountOut, queryAmount);
+	}
+
+	function pool() internal pure returns (address) {
+		return TRICRYPTO_POOL;
 	}
 
 	function feed() internal pure returns (address) {

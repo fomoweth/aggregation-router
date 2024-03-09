@@ -22,14 +22,48 @@ abstract contract BaseTest is Test, Constants {
 	}
 
 	function deal(Currency currency, address account, uint256 amount) internal returns (uint256) {
-		if (currency != STETH) {
+		if (currency == STETH) {
+			return dealSTETH(currency, account, amount);
+		} else if (currency == USDC) {
+			return dealUSDC(currency, account, amount);
+		} else {
 			if (currency.isNative()) deal(account, amount);
 			else deal(currency.toAddress(), account, amount);
 
-			return amount;
-		} else {
-			return dealSTETH(currency, account, amount);
+			return currency.balanceOf(account);
 		}
+	}
+
+	function dealUSDC(Currency usdc, address account, uint256 amount) internal returns (uint256) {
+		vm.prank(USDC_MASTER_MINTER);
+
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x4e44d95600000000000000000000000000000000000000000000000000000000) // configureMinter(address,uint256)
+			mstore(add(ptr, 0x04), and(address(), 0xffffffffffffffffffffffffffffffffffffffff))
+			mstore(add(ptr, 0x24), sub(exp(0x02, 0x100), 0x01))
+
+			if iszero(call(gas(), usdc, 0x00, ptr, 0x44, 0x00, 0x00)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+		}
+
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x40c10f1900000000000000000000000000000000000000000000000000000000) // mint(address,uint256)
+			mstore(add(ptr, 0x04), and(account, 0xffffffffffffffffffffffffffffffffffffffff))
+			mstore(add(ptr, 0x24), amount)
+
+			if iszero(call(gas(), usdc, 0x00, ptr, 0x44, 0x00, 0x00)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+		}
+
+		return usdc.balanceOf(account);
 	}
 
 	function dealSTETH(Currency steth, address account, uint256 amount) internal returns (uint256 staked) {
@@ -108,19 +142,6 @@ abstract contract BaseTest is Test, Constants {
 		return FullMath.mulDiv(ethAmount, price, 10 ** unit);
 	}
 
-	function pack(
-		address pool,
-		uint8 i,
-		uint8 j,
-		uint8 wrapIn,
-		uint8 wrapOut
-	) internal pure returns (bytes32 data) {
-		assembly ("memory-safe") {
-			data := add(pool, add(shl(160, i), add(shl(168, j), add(shl(176, wrapIn), shl(184, wrapOut)))))
-		}
-	}
-
-	// For Curve
 	function pack(
 		address pool,
 		uint8 i,

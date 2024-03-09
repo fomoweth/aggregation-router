@@ -32,87 +32,79 @@ contract STETHWrapperTest is BaseTest {
 	function test_wrapSTETH() public {
 		uint256 amountIn;
 		uint256 amountOut;
-		uint256 expected;
-		address pool;
+		address queryPool;
+		uint256 queryAmount;
 
 		uint256 snapshot = vm.snapshot();
 
 		amountIn = deal(ETH, address(adapter), ethAmount);
-		assertEq(ETH.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(pool, expected) = adapter.query(ETH, STETH, amountIn);
-		assertEq(pool, STETH.toAddress());
+		(queryPool, queryAmount) = adapter.query(ETH, STETH, amountIn);
+		assertEq(queryPool, STETH.toAddress());
 
 		amountOut = adapter.wrapSTETH(amountIn, false, false);
-		assertEq(amountOut, expected, "!amountOut");
+		assertEq(amountOut, queryAmount);
 
 		vm.revertTo(snapshot);
 
 		amountIn = deal(WETH, address(adapter), ethAmount);
-		assertEq(WETH.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(pool, expected) = adapter.query(WETH, STETH, amountIn);
-		assertEq(pool, STETH.toAddress());
+		(queryPool, queryAmount) = adapter.query(WETH, STETH, amountIn);
+		assertEq(queryPool, STETH.toAddress());
 
 		amountOut = adapter.wrapSTETH(amountIn, true, false);
-		assertEq(amountOut, expected, "!amountOut");
+		assertEq(amountOut, queryAmount);
 
 		vm.revertTo(snapshot);
 
 		amountIn = deal(ETH, address(adapter), ethAmount);
-		assertEq(ETH.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(pool, expected) = adapter.query(ETH, WSTETH, amountIn);
-		assertEq(pool, WSTETH.toAddress());
+		(queryPool, queryAmount) = adapter.query(ETH, WSTETH, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
 
 		amountOut = adapter.wrapSTETH(amountIn, false, true);
-		assertEq(amountOut, expected, "!amountOut");
+		assertEq(amountOut, queryAmount);
 
 		vm.revertTo(snapshot);
 
 		amountIn = deal(WETH, address(adapter), ethAmount);
-		assertEq(WETH.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(pool, expected) = adapter.query(WETH, WSTETH, amountIn);
-		assertEq(pool, WSTETH.toAddress());
+		(queryPool, queryAmount) = adapter.query(WETH, WSTETH, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
 
 		amountOut = adapter.wrapSTETH(amountIn, true, true);
-		assertEq(amountOut, expected, "!amountOut");
+		assertEq(amountOut, queryAmount);
 	}
 
 	function test_wrapWSTETH() public {
 		uint256 amountIn = deal(STETH, address(adapter), ethAmount);
-		assertEq(getBalance(STETH, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(STETH, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(STETH, WSTETH, amountIn);
-		assertEq(pool, WSTETH.toAddress());
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(STETH, WSTETH, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
+		assertGt(queryAmount, 0);
 
 		uint256 amountOut = adapter.wrapWSTETH(amountIn);
-		assertEq(amountOut, expected, "!amountOut");
+		assertEq(amountOut, queryAmount);
 	}
 
 	function test_unwrapWSTETH() public {
 		uint256 amountIn = deal(WSTETH, address(adapter), ethAmount);
-		assertEq(getBalance(WSTETH, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(WSTETH, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(WSTETH, STETH, amountIn);
-		assertEq(pool, WSTETH.toAddress());
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(WSTETH, STETH, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
+		assertGt(queryAmount, 0);
 
 		uint256 amountOut = adapter.unwrapWSTETH(amountIn);
-		assertEq(amountOut, expected, "!amountOut");
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testStakeETH() public {
-		// console.log("adapter:", address(adapter)); 0x41A0d6641e9cd7a699715e11875132F4E042453A
-		// console.log("wrapSTETH:"); 0xc9f0540a
-		// console.logBytes4(adapter.wrapSTETH.selector);
-		// console.log("wrapWSTETH:"); 0x5ce65ed6
-		// console.logBytes4(adapter.wrapWSTETH.selector);
-		// console.log("unwrapWSTETH:"); 0xd3b64fbc
-		// console.logBytes4(adapter.unwrapWSTETH.selector);
-
 		Currency currencyIn = ETH;
 		Currency currencyOut = STETH;
 
@@ -120,16 +112,16 @@ contract STETHWrapperTest is BaseTest {
 		uint8 j = 1;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, STETH.toAddress());
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, STETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testUnwrapWETHThenStakeETH() public {
@@ -141,16 +133,16 @@ contract STETHWrapperTest is BaseTest {
 
 		uint256 amountIn = ethAmount;
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, STETH.toAddress(), "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, STETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, UNWRAP_ETH, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, UNWRAP_ETH, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testStakeETHThenWrapSTETH() public {
@@ -162,16 +154,16 @@ contract STETHWrapperTest is BaseTest {
 
 		uint256 amountIn = ethAmount;
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, WSTETH.toAddress());
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testUnwrapWETHAndStakeETHThenWrapSTETH() public {
@@ -182,16 +174,16 @@ contract STETHWrapperTest is BaseTest {
 		uint8 j = 2;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn, "!amountIn");
+		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, WSTETH.toAddress());
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, UNWRAP_ETH, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, UNWRAP_ETH, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testWrapSTETH() public {
@@ -202,16 +194,16 @@ contract STETHWrapperTest is BaseTest {
 		uint8 j = 2;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, WSTETH.toAddress(), "!pool");
-		assertGt(expected, 0, "!query");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected, "!exchange");
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 	}
 
 	function testUnwrapWSTETH() public {
@@ -222,15 +214,15 @@ contract STETHWrapperTest is BaseTest {
 		uint8 j = 1;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn, "!amountIn");
+		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address pool, uint256 expected) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(pool, WSTETH.toAddress(), "!pool");
-		assertGt(expected, 0, "!expected");
+		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(queryPool, WSTETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		bytes32 data = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
+		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
 
-		uint256 amountOut = adapter.exchange(data);
-		assertEq(amountOut, expected, "!amountOut");
+		uint256 amountOut = adapter.exchange(path);
+		assertEq(amountOut, queryAmount);
 	}
 }
