@@ -86,7 +86,7 @@ abstract contract BaseTest is Test, Constants {
 		}
 	}
 
-	function getBalance(Currency currency, address account) internal view returns (uint256 value) {
+	function getBalance(Currency currency, address account) internal view returns (uint256) {
 		if (currency != STETH) return currency.balanceOf(account);
 		else return sharesOf(currency, account);
 	}
@@ -149,9 +149,9 @@ abstract contract BaseTest is Test, Constants {
 		uint8 wrapIn,
 		uint8 wrapOut,
 		bool isUnderlying
-	) internal pure returns (bytes32 data) {
+	) internal pure returns (bytes32 path) {
 		assembly ("memory-safe") {
-			data := add(
+			path := add(
 				pool,
 				add(
 					shl(160, i),
@@ -159,5 +159,53 @@ abstract contract BaseTest is Test, Constants {
 				)
 			)
 		}
+	}
+
+	function pack(
+		address pool,
+		uint8 i,
+		uint8 j,
+		uint8 wrapIn,
+		uint8 wrapOut,
+		bool pullIn,
+		bool isUnderlying
+	) internal pure returns (bytes32 path) {
+		assembly ("memory-safe") {
+			path := add(
+				pool,
+				add(
+					shl(160, i),
+					add(
+						shl(168, j),
+						add(
+							shl(176, wrapIn),
+							add(shl(184, wrapOut), add(shl(192, pullIn), shl(200, isUnderlying)))
+						)
+					)
+				)
+			)
+		}
+	}
+
+	function unpack(
+		bytes32 path
+	)
+		internal
+		pure
+		returns (address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut, bool pullIn, bool isUnderlying)
+	{
+		assembly ("memory-safe") {
+			pool := and(path, 0xffffffffffffffffffffffffffffffffffffffff)
+			i := and(shr(160, path), 0xff)
+			j := and(shr(168, path), 0xff)
+			wrapIn := and(shr(176, path), 0xff)
+			wrapOut := and(shr(184, path), 0xff)
+			pullIn := and(shr(192, path), 0xff)
+			isUnderlying := and(shr(200, path), 0xff)
+		}
+	}
+
+	function toPool(bytes32 path) internal pure returns (address) {
+		return address(uint160(uint256(path)));
 	}
 }

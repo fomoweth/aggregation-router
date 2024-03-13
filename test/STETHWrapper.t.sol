@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
 import {STETHWrapper} from "src/adapters/STETHWrapper.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
-
-// forge test -vvv --match-path test/STETHWrapper.t.sol
 
 contract STETHWrapperTest is BaseTest {
 	using CurrencyLibrary for Currency;
@@ -29,200 +26,101 @@ contract STETHWrapperTest is BaseTest {
 		);
 	}
 
-	function test_wrapSTETH() public {
-		uint256 amountIn;
-		uint256 amountOut;
-		address queryPool;
-		uint256 queryAmount;
-
+	function testWrapSTETH() public {
 		uint256 snapshot = vm.snapshot();
 
-		amountIn = deal(ETH, address(adapter), ethAmount);
-		assertEq(ETH.balanceOf(address(adapter)), amountIn);
+		uint256 amountIn;
+		uint256 amountOut;
+		bytes32 queryPath;
+		uint256 queryAmount;
 
-		(queryPool, queryAmount) = adapter.query(ETH, STETH, amountIn);
-		assertEq(queryPool, STETH.toAddress());
-
-		amountOut = adapter.wrapSTETH(amountIn, false, false);
-		assertEq(amountOut, queryAmount);
-
-		vm.revertTo(snapshot);
-
-		amountIn = deal(WETH, address(adapter), ethAmount);
-		assertEq(WETH.balanceOf(address(adapter)), amountIn);
-
-		(queryPool, queryAmount) = adapter.query(WETH, STETH, amountIn);
-		assertEq(queryPool, STETH.toAddress());
-
-		amountOut = adapter.wrapSTETH(amountIn, true, false);
-		assertEq(amountOut, queryAmount);
-
-		vm.revertTo(snapshot);
+		// ETH -> stETH
 
 		amountIn = deal(ETH, address(adapter), ethAmount);
 		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPool, queryAmount) = adapter.query(ETH, WSTETH, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
+		(queryPath, queryAmount) = adapter.query(ETH, STETH, amountIn);
+		assertEq(toPool(queryPath), STETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		amountOut = adapter.wrapSTETH(amountIn, false, true);
+		amountOut = adapter.wrapSTETH(queryPath);
 		assertEq(amountOut, queryAmount);
 
 		vm.revertTo(snapshot);
 
+		// WETH -> stETH
+
 		amountIn = deal(WETH, address(adapter), ethAmount);
 		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPool, queryAmount) = adapter.query(WETH, WSTETH, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
+		(queryPath, queryAmount) = adapter.query(WETH, STETH, amountIn);
+		assertEq(toPool(queryPath), STETH.toAddress());
+		assertGt(queryAmount, 0);
 
-		amountOut = adapter.wrapSTETH(amountIn, true, true);
+		amountOut = adapter.wrapSTETH(queryPath);
 		assertEq(amountOut, queryAmount);
 	}
 
-	function test_wrapWSTETH() public {
-		uint256 amountIn = deal(STETH, address(adapter), ethAmount);
+	function testWrapWSTETH() public {
+		uint256 snapshot = vm.snapshot();
+
+		uint256 amountIn;
+		uint256 amountOut;
+		bytes32 queryPath;
+		uint256 queryAmount;
+
+		// ETH -> wstETH
+
+		amountIn = deal(ETH, address(adapter), ethAmount);
+		assertEq(ETH.balanceOf(address(adapter)), amountIn);
+
+		(queryPath, queryAmount) = adapter.query(ETH, WSTETH, amountIn);
+		assertEq(toPool(queryPath), WSTETH.toAddress());
+		assertGt(queryAmount, 0);
+
+		amountOut = adapter.wrapWSTETH(queryPath);
+		assertEq(amountOut, queryAmount);
+
+		vm.revertTo(snapshot);
+
+		// WETH -> wstETH
+
+		amountIn = deal(WETH, address(adapter), ethAmount);
+		assertEq(WETH.balanceOf(address(adapter)), amountIn);
+
+		(queryPath, queryAmount) = adapter.query(WETH, WSTETH, amountIn);
+		assertEq(toPool(queryPath), WSTETH.toAddress());
+		assertGt(queryAmount, 0);
+
+		amountOut = adapter.wrapWSTETH(queryPath);
+		assertEq(amountOut, queryAmount);
+
+		vm.revertTo(snapshot);
+
+		// stETH -> wstETH
+
+		amountIn = deal(STETH, address(adapter), ethAmount);
 		assertEq(getBalance(STETH, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(STETH, WSTETH, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
+		(queryPath, queryAmount) = adapter.query(STETH, WSTETH, amountIn);
+		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
-		uint256 amountOut = adapter.wrapWSTETH(amountIn);
-		assertEq(amountOut, queryAmount);
-	}
-
-	function test_unwrapWSTETH() public {
-		uint256 amountIn = deal(WSTETH, address(adapter), ethAmount);
-		assertEq(getBalance(WSTETH, address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(WSTETH, STETH, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
-		assertGt(queryAmount, 0);
-
-		uint256 amountOut = adapter.unwrapWSTETH(amountIn);
-		assertEq(amountOut, queryAmount);
-	}
-
-	function testStakeETH() public {
-		Currency currencyIn = ETH;
-		Currency currencyOut = STETH;
-
-		uint8 i = 0;
-		uint8 j = 1;
-
-		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, STETH.toAddress());
-		assertGt(queryAmount, 0);
-
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
-
-		uint256 amountOut = adapter.exchange(path);
-		assertEq(amountOut, queryAmount);
-	}
-
-	function testUnwrapWETHThenStakeETH() public {
-		Currency currencyIn = WETH;
-		Currency currencyOut = STETH;
-
-		uint8 i = 0;
-		uint8 j = 1;
-
-		uint256 amountIn = ethAmount;
-		deal(currencyIn, address(adapter), amountIn);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, STETH.toAddress());
-		assertGt(queryAmount, 0);
-
-		bytes32 path = pack(queryPool, i, j, UNWRAP_ETH, NO_ACTION, false);
-
-		uint256 amountOut = adapter.exchange(path);
-		assertEq(amountOut, queryAmount);
-	}
-
-	function testStakeETHThenWrapSTETH() public {
-		Currency currencyIn = ETH;
-		Currency currencyOut = WSTETH;
-
-		uint8 i = 0;
-		uint8 j = 2;
-
-		uint256 amountIn = ethAmount;
-		deal(currencyIn, address(adapter), amountIn);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
-		assertGt(queryAmount, 0);
-
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
-
-		uint256 amountOut = adapter.exchange(path);
-		assertEq(amountOut, queryAmount);
-	}
-
-	function testUnwrapWETHAndStakeETHThenWrapSTETH() public {
-		Currency currencyIn = WETH;
-		Currency currencyOut = WSTETH;
-
-		uint8 i = 0;
-		uint8 j = 2;
-
-		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
-		assertGt(queryAmount, 0);
-
-		bytes32 path = pack(queryPool, i, j, UNWRAP_ETH, NO_ACTION, false);
-
-		uint256 amountOut = adapter.exchange(path);
-		assertEq(amountOut, queryAmount);
-	}
-
-	function testWrapSTETH() public {
-		Currency currencyIn = STETH;
-		Currency currencyOut = WSTETH;
-
-		uint8 i = 1;
-		uint8 j = 2;
-
-		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
-		assertGt(queryAmount, 0);
-
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
-
-		uint256 amountOut = adapter.exchange(path);
+		amountOut = adapter.wrapWSTETH(queryPath);
 		assertEq(amountOut, queryAmount);
 	}
 
 	function testUnwrapWSTETH() public {
-		Currency currencyIn = WSTETH;
-		Currency currencyOut = STETH;
+		// wstETH -> stETH
 
-		uint8 i = 2;
-		uint8 j = 1;
+		uint256 amountIn = deal(WSTETH, address(adapter), ethAmount);
+		assertEq(getBalance(WSTETH, address(adapter)), amountIn);
 
-		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
-
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, WSTETH.toAddress());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(WSTETH, STETH, amountIn);
+		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
-
-		uint256 amountOut = adapter.exchange(path);
+		uint256 amountOut = adapter.unwrapWSTETH(queryPath);
 		assertEq(amountOut, queryAmount);
 	}
 }

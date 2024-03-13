@@ -7,6 +7,7 @@ evm_version = "cancun"
 via_ir = true
 optimizer = true
 optimizer_runs = 1_000_000
+gas_reports = ["AggregationRouter"]
 fs_permissions = [{ access = "read", path = "./" }]
 
 [etherscan]
