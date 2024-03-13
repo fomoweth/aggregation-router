@@ -12,13 +12,19 @@ library Errors {
 
 	error EmptyData();
 
+	error ExceededMaxLimit();
+
 	error InvalidAction();
+
+	error InvalidConversion();
 
 	error IdenticalCurrencyIds();
 
 	error InvalidCurrencyId();
 
 	error InvalidCurrency();
+
+	error InvalidDirection();
 
 	error InvalidPool();
 
@@ -31,4 +37,6 @@ library Errors {
 	error InsufficientReserves();
 
 	error OutOfBound();
+
+	error Overflow();
 }

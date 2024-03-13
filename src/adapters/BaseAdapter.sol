@@ -25,17 +25,23 @@ abstract contract BaseAdapter is IAdapter {
 		return _exchange(path);
 	}
 
-	function quote(bytes32 path, uint256 amountIn) external view returns (uint256 amountOut) {
-		if (amountIn != 0) amountOut = _quote(path, amountIn);
+	function query(
+		Currency currencyIn,
+		Currency currencyOut,
+		uint256 amountIn
+	) external view returns (bytes32 path, uint256 amountOut) {
+		if (currencyIn != currencyOut && amountIn != 0) {
+			(path, amountOut) = _query(currencyIn, currencyOut, amountIn);
+		}
 	}
 
-	function query(
+	function quote(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
 	) external view returns (address pool, uint256 amountOut) {
 		if (currencyIn != currencyOut && amountIn != 0) {
-			(pool, amountOut) = _query(currencyIn, currencyOut, amountIn);
+			(pool, amountOut) = _quote(currencyIn, currencyOut, amountIn);
 		}
 	}
 
@@ -78,9 +84,13 @@ abstract contract BaseAdapter is IAdapter {
 
 	function _exchange(bytes32 path) internal virtual returns (uint256 amountOut);
 
-	function _quote(bytes32 path, uint256 amountIn) internal view virtual returns (uint256 amountOut);
-
 	function _query(
+		Currency currencyIn,
+		Currency currencyOut,
+		uint256 amountIn
+	) internal view virtual returns (bytes32 path, uint256 amountOut);
+
+	function _quote(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn

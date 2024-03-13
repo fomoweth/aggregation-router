@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {FRXETH_MINTER} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
@@ -16,8 +17,6 @@ contract FRXETHWrapper is BaseAdapter {
 	Currency internal immutable FRXETH;
 	Currency internal immutable SFRXETH;
 
-	address internal constant FRAXETH_MINTER = 0xbAFA44EFE7901E04E39Dad13167D089C559c1138;
-
 	uint8 internal constant ETH_IDX = 0;
 	uint8 internal constant FRXETH_IDX = 1;
 	uint8 internal constant SFRXETH_IDX = 2;
@@ -27,26 +26,45 @@ contract FRXETHWrapper is BaseAdapter {
 		SFRXETH = _sfrxeth;
 	}
 
-	function wrapFRXETH(uint256 amount, bool fromWETH, bool toSFRXETH) external payable returns (uint256) {
-		if (fromWETH) unwrapWETH(WETH, WETH.balanceOfSelf());
+	function wrapFRXETH(bytes32 path) external payable returns (uint256) {
+		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
+		if (i != ETH_IDX || j != FRXETH_IDX) revert Errors.InvalidCurrencyId();
 
-		if (address(this).balance < amount) revert Errors.InsufficientBalance();
+		if (wrapIn == UNWRAP_ETH) unwrapWETH(WETH, WETH.balanceOfSelf());
 
-		return invoke(ETH_IDX, !toSFRXETH ? FRXETH_IDX : SFRXETH_IDX, amount);
+		uint256 amountIn = address(this).balance;
+		if (amountIn == 0) revert Errors.InsufficientAmountIn();
+
+		return invoke(i, j, address(this).balance);
 	}
 
-	function wrapSFRXETH(uint256 amount) external payable returns (uint256 amountOut) {
-		if (FRXETH.balanceOfSelf() < amount) revert Errors.InsufficientBalance();
+	function wrapSFRXETH(bytes32 path) external payable returns (uint256) {
+		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
+		if ((i != ETH_IDX && i != FRXETH_IDX) || j != SFRXETH_IDX) revert Errors.InvalidCurrencyId();
 
-		FRXETH.approve(SFRXETH.toAddress(), amount);
+		uint256 amountIn;
 
-		return invoke(FRXETH_IDX, SFRXETH_IDX, amount);
+		if (i == ETH_IDX) {
+			if (wrapIn == UNWRAP_ETH) unwrapWETH(WETH, WETH.balanceOfSelf());
+			if ((amountIn = address(this).balance) == 0) revert Errors.InsufficientAmountIn();
+			amountIn = address(this).balance;
+		} else {
+			if ((amountIn = FRXETH.balanceOfSelf()) == 0) revert Errors.InsufficientAmountIn();
+			amountIn = FRXETH.balanceOfSelf();
+			FRXETH.approve(SFRXETH.toAddress(), amountIn);
+		}
+
+		return invoke(i, j, amountIn);
 	}
 
-	function unwrapSFRXETH(uint256 amount) external payable returns (uint256) {
-		if (SFRXETH.balanceOfSelf() < amount) revert Errors.InsufficientBalance();
+	function unwrapSFRXETH(bytes32 path) external payable returns (uint256) {
+		(, uint8 i, uint8 j, , ) = path.decode();
+		if (i != SFRXETH_IDX || j != FRXETH_IDX) revert Errors.InvalidCurrencyId();
 
-		return invoke(SFRXETH_IDX, FRXETH_IDX, amount);
+		uint256 amountIn = SFRXETH.balanceOfSelf();
+		if (amountIn == 0) revert Errors.InsufficientAmountIn();
+
+		return invoke(i, j, amountIn);
 	}
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
@@ -64,6 +82,8 @@ contract FRXETHWrapper is BaseAdapter {
 		} else if (i == SFRXETH_IDX) {
 			amountIn = SFRXETH.balanceOfSelf();
 		}
+
+		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
 		return invoke(i, j, amountIn);
 	}
@@ -106,7 +126,7 @@ contract FRXETHWrapper is BaseAdapter {
 						mstore(ptr, 0x4dcd454700000000000000000000000000000000000000000000000000000000) // submitAndDeposit(address)
 						mstore(add(ptr, 0x04), and(address(), 0xffffffffffffffffffffffffffffffffffffffff))
 
-						amountOut := execute(ptr, FRAXETH_MINTER, amountIn, 0x24)
+						amountOut := execute(ptr, FRXETH_MINTER, amountIn, 0x24)
 					}
 					case 0x01 {
 						// frxETH -> sfrxETH
@@ -122,7 +142,7 @@ contract FRXETHWrapper is BaseAdapter {
 				// ETH -> frxETH
 
 				// ETH can be staked for frxETH via Minter by executing submit() or sending ETH which is cheaper
-				if iszero(call(gas(), FRAXETH_MINTER, amountIn, 0x00, 0x00, 0x00, 0x00)) {
+				if iszero(call(gas(), FRXETH_MINTER, amountIn, 0x00, 0x00, 0x00, 0x00)) {
 					returndatacopy(ptr, 0x00, returndatasize())
 					revert(ptr, returndatasize())
 				}
@@ -132,23 +152,50 @@ contract FRXETHWrapper is BaseAdapter {
 		}
 	}
 
-	function _quote(
-		bytes32 path,
+	function _query(
+		Currency currencyIn,
+		Currency currencyOut,
 		uint256 amountIn
-	) internal view virtual override returns (uint256 amountOut) {
-		(, uint8 i, uint8 j, , ) = path.decode();
+	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
+		Currency weth = WETH;
+		Currency frxeth = FRXETH;
+		Currency sfrxeth = SFRXETH;
 
-		if (j == SFRXETH_IDX) {
-			if (i == ETH_IDX || i == FRXETH_IDX) amountOut = convert(SFRXETH, amountIn, true);
-		} else if (j == FRXETH_IDX) {
-			if (i == ETH_IDX) amountOut = amountIn;
-			else if (i == SFRXETH_IDX) amountOut = convert(SFRXETH, amountIn, false);
+		Currency pool = sfrxeth;
+		uint8 wrapIn = currencyIn == weth ? UNWRAP_ETH : NO_ACTION;
+		uint8 i;
+		uint8 j;
+
+		if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == frxeth) {
+			amountOut = amountIn;
+			pool = frxeth;
+			i = ETH_IDX;
+			j = FRXETH_IDX;
+		} else if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == sfrxeth) {
+			amountOut = convert(sfrxeth, amountIn, true);
+
+			i = ETH_IDX;
+			j = SFRXETH_IDX;
+		} else if (currencyIn == frxeth && currencyOut == sfrxeth) {
+			amountOut = convert(sfrxeth, amountIn, true);
+
+			i = FRXETH_IDX;
+			j = SFRXETH_IDX;
+		} else if (currencyIn == sfrxeth && currencyOut == frxeth) {
+			amountOut = convert(sfrxeth, amountIn, false);
+
+			i = SFRXETH_IDX;
+			j = FRXETH_IDX;
 		}
 
-		revert Errors.InvalidCurrencyId();
+		if (amountOut == 0) return (bytes32(0), 0);
+
+		assembly ("memory-safe") {
+			path := add(pool, add(shl(160, i), add(shl(168, j), add(shl(176, wrapIn), shl(184, NO_ACTION)))))
+		}
 	}
 
-	function _query(
+	function _quote(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
