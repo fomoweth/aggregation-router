@@ -43,12 +43,21 @@ abstract contract Constants {
 	address constant FRAX_V2_FRAX_ETH_POOL = 0x31351Bf3fba544863FBff44DDC27bA880916A199;
 
 	address constant TRICRYPTO_POOL = 0x80466c64868E1ab14a1Ddf27A676C3fcBE638Fe5;
+	address constant TRYLSD_POOL = 0x2570f1bD5D2735314FC102eb12Fc1aFe9e6E7193;
+	address constant STECRV_POOL = 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022;
+	address constant STECRV_TOKEN = 0x06325440D014e39736583c165C2963BA99fAf14E;
 
 	address constant DODO_V2_WETH_NEAR_DVM_POOL = 0x983dfBa1c0724786598Af0E63a9a6f94aAbd24A1;
 	address constant DODO_V2_DAI_USDT_DSP_POOL = 0x3058EF90929cb8180174D74C507176ccA6835D73;
 	address constant DODO_V1_WETH_USDC_POOL = 0x75c23271661d9d143DCb617222BC4BEc783eff34;
 	address constant DODO_V1_DODO_USDT_POOL = 0x8876819535b48b551C9e97EBc07332C7482b4b2d;
 	address constant DODO_V3_WETH_WSTETH_POOL = 0x7bcE750a34F69D33AC785C04fBc87d6455C19453;
+
+	address constant POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+	address constant LENDING_POOL = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
+
+	address constant COMPTROLLER = 0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B;
+	Currency constant CETH = Currency.wrap(0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5);
 
 	address constant USDC_MASTER_MINTER = 0xE982615d461DD5cD06575BbeA87624fda4e3de17;
 
@@ -68,4 +77,19 @@ abstract contract Constants {
 	uint256 constant DODO_V1_ID = 9;
 	uint256 constant FRXETH_WRAPPER_ID = 10;
 	uint256 constant STETH_WRAPPER_ID = 11;
+	uint256 constant ATOKEN_WRAPPER_ID = 12;
+	uint256 constant CTOKEN_WRAPPER_ID = 13;
+
+	uint256 constant UNISWAP_V3_IDX = 6;
+	uint256 constant UNISWAP_V2_IDX = 4;
+	uint256 constant SUSHI_V3_IDX = 1;
+	uint256 constant SUSHI_V2_IDX = 8;
+	uint256 constant PANCAKE_V3_IDX = 3;
+	uint256 constant PANCAKE_V2_IDX = 11;
+	uint256 constant FRAX_V2_IDX = 10;
+	uint256 constant CURVE_IDX = 5;
+	uint256 constant DODO_V2_IDX = 7;
+	uint256 constant DODO_V1_IDX = 9;
+	uint256 constant FRXETH_WRAPPER_IDX = 0;
+	uint256 constant STETH_WRAPPER_IDX = 2;
 }

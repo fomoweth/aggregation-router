@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {FRXETHWrapper} from "src/adapters/FRXETHWrapper.sol";
+import {FRXETHWrapper} from "src/adapters/wrappers/FRXETHWrapper.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
 
@@ -41,7 +41,7 @@ contract FRXETHWrapperTest is BaseTest {
 		amountIn = deal(ETH, address(adapter), ethAmount);
 		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(ETH, FRXETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(ETH, FRXETH, amountIn, true);
 		assertEq(toPool(queryPath), FRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -55,7 +55,7 @@ contract FRXETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshotInitial);
@@ -65,7 +65,7 @@ contract FRXETHWrapperTest is BaseTest {
 		amountIn = deal(WETH, address(adapter), ethAmount);
 		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(WETH, FRXETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(WETH, FRXETH, amountIn, true);
 		assertEq(toPool(queryPath), FRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -79,7 +79,7 @@ contract FRXETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 	}
 
@@ -98,7 +98,7 @@ contract FRXETHWrapperTest is BaseTest {
 		amountIn = deal(ETH, address(adapter), ethAmount);
 		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(ETH, SFRXETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(ETH, SFRXETH, amountIn, true);
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -112,7 +112,7 @@ contract FRXETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshotInitial);
@@ -122,7 +122,7 @@ contract FRXETHWrapperTest is BaseTest {
 		amountIn = deal(WETH, address(adapter), ethAmount);
 		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(WETH, SFRXETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(WETH, SFRXETH, amountIn, true);
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -136,7 +136,7 @@ contract FRXETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshotInitial);
@@ -146,7 +146,7 @@ contract FRXETHWrapperTest is BaseTest {
 		amountIn = deal(FRXETH, address(adapter), ethAmount);
 		assertEq(FRXETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(FRXETH, SFRXETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(FRXETH, SFRXETH, amountIn, true);
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -160,7 +160,7 @@ contract FRXETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 	}
 
@@ -170,7 +170,7 @@ contract FRXETHWrapperTest is BaseTest {
 		uint256 amountIn = deal(SFRXETH, address(adapter), ethAmount);
 		assertEq(SFRXETH.balanceOf(address(adapter)), amountIn);
 
-		(bytes32 queryPath, uint256 queryAmount) = adapter.query(SFRXETH, FRXETH, amountIn);
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(SFRXETH, FRXETH, amountIn, true);
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -186,7 +186,7 @@ contract FRXETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.unwrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 	}
 }

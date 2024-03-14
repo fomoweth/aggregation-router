@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {STETHWrapper} from "src/adapters/STETHWrapper.sol";
+import {STETHWrapper} from "src/adapters/wrappers/STETHWrapper.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
 
@@ -41,7 +41,7 @@ contract STETHWrapperTest is BaseTest {
 		amountIn = deal(ETH, address(adapter), ethAmount);
 		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(ETH, STETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(ETH, STETH, amountIn, true);
 		assertEq(toPool(queryPath), STETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -55,7 +55,7 @@ contract STETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshotInitial);
@@ -65,7 +65,7 @@ contract STETHWrapperTest is BaseTest {
 		amountIn = deal(WETH, address(adapter), ethAmount);
 		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(WETH, STETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(WETH, STETH, amountIn, true);
 		assertEq(toPool(queryPath), STETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -79,7 +79,7 @@ contract STETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 	}
 
@@ -98,7 +98,7 @@ contract STETHWrapperTest is BaseTest {
 		amountIn = deal(ETH, address(adapter), ethAmount);
 		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(ETH, WSTETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(ETH, WSTETH, amountIn, true);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -112,7 +112,7 @@ contract STETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshotInitial);
@@ -122,7 +122,7 @@ contract STETHWrapperTest is BaseTest {
 		amountIn = deal(WETH, address(adapter), ethAmount);
 		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(WETH, WSTETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(WETH, WSTETH, amountIn, true);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -136,7 +136,7 @@ contract STETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshotInitial);
@@ -146,7 +146,7 @@ contract STETHWrapperTest is BaseTest {
 		amountIn = deal(STETH, address(adapter), ethAmount);
 		assertEq(getBalance(STETH, address(adapter)), amountIn);
 
-		(queryPath, queryAmount) = adapter.query(STETH, WSTETH, amountIn);
+		(queryPath, queryAmount) = adapter.query(STETH, WSTETH, amountIn, true);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -160,7 +160,7 @@ contract STETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.wrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 	}
 
@@ -170,7 +170,7 @@ contract STETHWrapperTest is BaseTest {
 		uint256 amountIn = deal(WSTETH, address(adapter), ethAmount);
 		assertEq(getBalance(WSTETH, address(adapter)), amountIn);
 
-		(bytes32 queryPath, uint256 queryAmount) = adapter.query(WSTETH, STETH, amountIn);
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(WSTETH, STETH, amountIn, false);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
@@ -186,7 +186,7 @@ contract STETHWrapperTest is BaseTest {
 
 		vm.revertTo(snapshot);
 
-		amountOut = adapter.exchange(queryPath);
+		amountOut = adapter.unwrap(queryPath);
 		assertEq(amountOut, quoteAmount);
 	}
 }

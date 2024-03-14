@@ -142,6 +142,44 @@ abstract contract BaseTest is Test, Constants {
 		return FullMath.mulDiv(ethAmount, price, 10 ** unit);
 	}
 
+	function derivePrice(
+		uint256 basePrice,
+		uint256 quotePrice,
+		uint8 baseDecimals,
+		uint8 quoteDecimals,
+		uint8 assetDecimals
+	) internal pure returns (uint256 derived) {
+		if (basePrice != 0 && quotePrice != 0) {
+			derived = FullMath.mulDiv(
+				scalePrice(basePrice, baseDecimals, assetDecimals),
+				10 ** assetDecimals,
+				scalePrice(quotePrice, quoteDecimals, assetDecimals)
+			);
+		}
+	}
+
+	function scalePrice(
+		uint256 price,
+		uint8 feedDecimals,
+		uint8 assetDecimals
+	) internal pure returns (uint256 scaled) {
+		assembly ("memory-safe") {
+			switch or(iszero(price), eq(feedDecimals, assetDecimals))
+			case 0x00 {
+				switch gt(feedDecimals, assetDecimals)
+				case 0x00 {
+					scaled := mul(price, exp(10, sub(assetDecimals, feedDecimals)))
+				}
+				default {
+					scaled := div(price, exp(10, sub(feedDecimals, assetDecimals)))
+				}
+			}
+			default {
+				scaled := price
+			}
+		}
+	}
+
 	function pack(
 		address pool,
 		uint8 i,
@@ -156,32 +194,6 @@ abstract contract BaseTest is Test, Constants {
 				add(
 					shl(160, i),
 					add(shl(168, j), add(shl(176, wrapIn), add(shl(184, wrapOut), shl(192, isUnderlying))))
-				)
-			)
-		}
-	}
-
-	function pack(
-		address pool,
-		uint8 i,
-		uint8 j,
-		uint8 wrapIn,
-		uint8 wrapOut,
-		bool pullIn,
-		bool isUnderlying
-	) internal pure returns (bytes32 path) {
-		assembly ("memory-safe") {
-			path := add(
-				pool,
-				add(
-					shl(160, i),
-					add(
-						shl(168, j),
-						add(
-							shl(176, wrapIn),
-							add(shl(184, wrapOut), add(shl(192, pullIn), shl(200, isUnderlying)))
-						)
-					)
 				)
 			)
 		}
