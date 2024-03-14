@@ -41,7 +41,7 @@ contract UniswapV3Adapter is BaseAdapter {
 
 		address pool = protocolId.computePoolAddress(currencyIn, currencyOut, fee);
 
-		if (pool != msg.sender) revert Errors.InvalidPool();
+		if (pool != _msgSender()) revert Errors.InvalidPool();
 
 		(bool isExactInput, uint256 amountToPay) = amount0Delta > 0
 			? (currencyIn < currencyOut, uint256(amount0Delta))

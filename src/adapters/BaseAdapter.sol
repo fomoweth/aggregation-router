@@ -4,10 +4,11 @@ pragma solidity ^0.8.20;
 import {IAdapter} from "src/interfaces/IAdapter.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {Currency} from "src/types/Currency.sol";
+import {Context} from "@openzeppelin/utils/Context.sol";
 
 /// @title BaseAdapter
 
-abstract contract BaseAdapter is IAdapter {
+abstract contract BaseAdapter is IAdapter, Context {
 	uint256 public immutable id;
 
 	Currency internal immutable WETH;

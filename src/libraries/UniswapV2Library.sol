@@ -123,15 +123,15 @@ library UniswapV2Library {
 				mstore(add(ptr, 0x15), salt)
 				mstore(add(ptr, 0x35), SUSHI_V2_PAIR_INIT_CODE_HASH)
 			}
-			case 0x04 {
-				mstore(ptr, add(hex"ff", shl(0x58, FRAXSWAP_FACTORY)))
-				mstore(add(ptr, 0x15), salt)
-				mstore(add(ptr, 0x35), FRAXSWAP_PAIR_INIT_CODE_HASH)
-			}
-			case 0x06 {
+			case 0x05 {
 				mstore(ptr, add(hex"ff", shl(0x58, PANCAKE_V2_FACTORY)))
 				mstore(add(ptr, 0x15), salt)
 				mstore(add(ptr, 0x35), PANCAKE_V2_PAIR_INIT_CODE_HASH)
+			}
+			case 0x06 {
+				mstore(ptr, add(hex"ff", shl(0x58, FRAXSWAP_FACTORY)))
+				mstore(add(ptr, 0x15), salt)
+				mstore(add(ptr, 0x35), FRAXSWAP_PAIR_INIT_CODE_HASH)
 			}
 			default {
 				invalid()

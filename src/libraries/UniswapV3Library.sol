@@ -306,7 +306,7 @@ library UniswapV3Library {
 				mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
 				mstore(add(ptr, 0x35), UNISWAP_V3_POOL_INIT_CODE_HASH)
 			}
-			case 0x05 {
+			case 0x04 {
 				mstore(ptr, add(hex"ff", shl(0x58, PANCAKE_V3_POOL_DEPLOYER)))
 				mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
 				mstore(add(ptr, 0x35), PANCAKE_V3_POOL_INIT_CODE_HASH)
