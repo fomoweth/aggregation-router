@@ -5,7 +5,7 @@ import {FraxSwapV2Adapter} from "src/adapters/FraxSwapV2Adapter.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
 
-contract FraxAdapterTest is BaseTest {
+contract FraxSwapV2AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
 
 	uint256 ethAmount = 20 ether;

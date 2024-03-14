@@ -60,9 +60,9 @@ abstract contract Constants {
 	uint256 constant UNISWAP_V2_ID = 1;
 	uint256 constant SUSHI_V3_ID = 2;
 	uint256 constant SUSHI_V2_ID = 3;
-	uint256 constant FRAX_V2_ID = 4;
-	uint256 constant PANCAKE_V3_ID = 5;
-	uint256 constant PANCAKE_V2_ID = 6;
+	uint256 constant PANCAKE_V3_ID = 4;
+	uint256 constant PANCAKE_V2_ID = 5;
+	uint256 constant FRAX_V2_ID = 6;
 	uint256 constant CURVE_ID = 7;
 	uint256 constant DODO_V2_ID = 8;
 	uint256 constant DODO_V1_ID = 9;
