@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
 import {CurveAdapter} from "src/adapters/CurveAdapter.sol";
+import {META_REGISTRY} from "src/libraries/Constants.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "./BaseTest.t.sol";
-
-// forge test -vvv --match-path test/CurveAdapter.t.sol
 
 contract CurveAdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
@@ -14,8 +12,6 @@ contract CurveAdapterTest is BaseTest {
 	uint256 ethAmount = 20 ether;
 
 	CurveAdapter adapter;
-
-	address constant META_REGISTRY = 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC;
 
 	function setUp() public {
 		fork();
@@ -35,19 +31,18 @@ contract CurveAdapterTest is BaseTest {
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(queryPool, currencyIn, currencyOut);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, isUnderlying);
-
-		uint256 amountOut = adapter.curveSwap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.curveSwap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
-	function testSwapWETHForWBTCWrapETHBeforeOnCurve() public {
+	function testWrapETHAndSwapWETHForWBTCOnCurve() public {
 		Currency currencyIn = WETH;
 		Currency currencyOut = WBTC;
 
@@ -56,16 +51,19 @@ contract CurveAdapterTest is BaseTest {
 		deal(address(adapter), amountIn);
 		assertEq(address(adapter).balance, amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(queryPool, currencyIn, currencyOut);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, isUnderlying);
+		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(pool(), currencyIn, currencyOut);
+
+		bytes32 path = pack(pool(), i, j, WRAP_ETH, NO_ACTION, isUnderlying);
 
 		uint256 amountOut = adapter.curveSwap(path);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testSwapWBTCForWETHOnCurve() public {
@@ -75,35 +73,38 @@ contract CurveAdapterTest is BaseTest {
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(queryPool, currencyIn, currencyOut);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, isUnderlying);
-
-		uint256 amountOut = adapter.curveSwap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.curveSwap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
-	function testSwapWBTCForWETHunwrapWETHAfterOnCurve() public {
+	function testSwapWBTCForWETHAndUnwrapWETHOnCurve() public {
 		Currency currencyIn = WBTC;
 		Currency currencyOut = WETH;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
 		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(queryPool, currencyIn, currencyOut);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, isUnderlying);
+		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(pool(), currencyIn, currencyOut);
+
+		bytes32 path = pack(pool(), i, j, NO_ACTION, UNWRAP_WETH, isUnderlying);
 
 		uint256 amountOut = adapter.curveSwap(path);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
+		assertEq(address(adapter).balance, amountOut);
 	}
 
 	function findPoolsFor(

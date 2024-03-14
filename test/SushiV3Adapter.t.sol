@@ -7,8 +7,6 @@ import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
 
-// forge test -vvv --match-path test/SushiV3Adapter.t.sol
-
 contract SushiV3AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
 	using PercentageMath for uint256;
@@ -32,88 +30,81 @@ contract SushiV3AdapterTest is BaseTest {
 		Currency currencyIn = currency0();
 		Currency currencyOut = currency1();
 
-		uint8 i = 0;
-		uint8 j = 1;
-
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.sushiV3Swap(path);
-		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
+		uint256 amountOut = adapter.sushiV3Swap(queryPath);
+		assertApproxEqAbs(amountOut, quoteAmount, quoteAmount.percentMul(1));
 	}
 
 	function testSwap1For0OnSushiSwapV3() public {
 		Currency currencyIn = currency1();
 		Currency currencyOut = currency0();
 
-		uint8 i = 1;
-		uint8 j = 0;
-
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.sushiV3Swap(path);
-		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
+		uint256 amountOut = adapter.sushiV3Swap(queryPath);
+		assertApproxEqAbs(amountOut, quoteAmount, quoteAmount.percentMul(1));
 	}
 
-	function testSwap0For1unwrapWETHAfterOnSushiSwapV3() public {
+	function testSwap0For1AndUnwrapWETHOnSushiSwapV3() public {
 		Currency currencyIn = currency0();
-		Currency currencyOut = currency1();
-
-		uint8 i = 0;
-		uint8 j = 1;
+		Currency currencyOut = ETH;
 
 		uint256 amountIn = computeAmountIn(currency0(), feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.sushiV3Swap(path);
-		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
+		uint256 amountOut = adapter.sushiV3Swap(queryPath);
+		assertApproxEqAbs(amountOut, quoteAmount, quoteAmount.percentMul(1));
+		assertEq(address(adapter).balance, amountOut);
 	}
 
-	function testSwap1For0WrapETHBeforeOnSushiSwapV3() public {
-		Currency currencyIn = currency1();
+	function testWrapETHAndSwap1For0OnSushiSwapV3() public {
+		Currency currencyIn = ETH;
 		Currency currencyOut = currency0();
-
-		uint8 i = 1;
-		uint8 j = 0;
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(address(adapter), amountIn);
 		assertEq(address(adapter).balance, amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.sushiV3Swap(path);
-		assertApproxEqAbs(amountOut, queryAmount, queryAmount.percentMul(1));
+		uint256 amountOut = adapter.sushiV3Swap(queryPath);
+		assertApproxEqAbs(amountOut, quoteAmount, quoteAmount.percentMul(1));
 	}
 
 	function pool() internal pure returns (address) {

@@ -54,13 +54,7 @@ abstract contract Constants {
 
 	uint8 constant NO_ACTION = 0;
 	uint8 constant WRAP_ETH = 1;
-	uint8 constant UNWRAP_ETH = 2;
-
-	uint8 constant ETH_IDX = 0;
-	uint8 constant FRXETH_IDX = 1;
-	uint8 constant SFRXETH_IDX = 2;
-	uint8 constant STETH_IDX = 1;
-	uint8 constant WSTETH_IDX = 2;
+	uint8 constant UNWRAP_WETH = 2;
 
 	uint256 constant UNISWAP_V3_ID = 0;
 	uint256 constant UNISWAP_V2_ID = 1;

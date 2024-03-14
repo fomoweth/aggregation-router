@@ -27,12 +27,14 @@ contract STETHWrapperTest is BaseTest {
 	}
 
 	function testWrapSTETH() public {
-		uint256 snapshot = vm.snapshot();
+		uint256 snapshotInitial = vm.snapshot();
+		uint256 snapshot;
 
 		uint256 amountIn;
 		uint256 amountOut;
 		bytes32 queryPath;
 		uint256 queryAmount;
+		uint256 quoteAmount;
 
 		// ETH -> stETH
 
@@ -43,10 +45,20 @@ contract STETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), STETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapSTETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshotInitial);
 
 		// WETH -> stETH
 
@@ -57,17 +69,29 @@ contract STETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), STETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapSTETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testWrapWSTETH() public {
-		uint256 snapshot = vm.snapshot();
+		uint256 snapshotInitial = vm.snapshot();
+		uint256 snapshot;
 
 		uint256 amountIn;
 		uint256 amountOut;
 		bytes32 queryPath;
 		uint256 queryAmount;
+		uint256 quoteAmount;
 
 		// ETH -> wstETH
 
@@ -78,10 +102,20 @@ contract STETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapWSTETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshotInitial);
 
 		// WETH -> wstETH
 
@@ -92,10 +126,20 @@ contract STETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapWSTETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshotInitial);
 
 		// stETH -> wstETH
 
@@ -106,8 +150,18 @@ contract STETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapWSTETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testUnwrapWSTETH() public {
@@ -120,7 +174,19 @@ contract STETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), WSTETH.toAddress());
 		assertGt(queryAmount, 0);
 
-		uint256 amountOut = adapter.unwrapWSTETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		uint256 snapshot = vm.snapshot();
+
+		uint256 amountOut;
+
+		amountOut = adapter.unwrapWSTETH(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 }

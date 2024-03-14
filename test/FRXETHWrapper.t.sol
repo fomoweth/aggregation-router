@@ -27,12 +27,14 @@ contract FRXETHWrapperTest is BaseTest {
 	}
 
 	function testWrapFRXETH() public {
-		uint256 snapshot = vm.snapshot();
+		uint256 snapshotInitial = vm.snapshot();
+		uint256 snapshot;
 
 		uint256 amountIn;
 		uint256 amountOut;
 		bytes32 queryPath;
 		uint256 queryAmount;
+		uint256 quoteAmount;
 
 		// ETH -> frxETH
 
@@ -43,10 +45,20 @@ contract FRXETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), FRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapFRXETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshotInitial);
 
 		// WETH -> frxETH
 
@@ -57,17 +69,29 @@ contract FRXETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), FRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapFRXETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testWrapSFRXETH() public {
-		uint256 snapshot = vm.snapshot();
+		uint256 snapshotInitial = vm.snapshot();
+		uint256 snapshot;
 
 		uint256 amountIn;
 		uint256 amountOut;
 		bytes32 queryPath;
 		uint256 queryAmount;
+		uint256 quoteAmount;
 
 		// ETH -> sfrxETH
 
@@ -78,10 +102,20 @@ contract FRXETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapSFRXETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
 
 		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshotInitial);
 
 		// WETH -> sfrxETH
 
@@ -92,8 +126,20 @@ contract FRXETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapSFRXETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshotInitial);
 
 		// frxETH -> sfrxETH
 
@@ -104,8 +150,18 @@ contract FRXETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
+		quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		snapshot = vm.snapshot();
+
 		amountOut = adapter.wrapSFRXETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testUnwrapSFRXETH() public {
@@ -118,7 +174,19 @@ contract FRXETHWrapperTest is BaseTest {
 		assertEq(toPool(queryPath), SFRXETH.toAddress());
 		assertGt(queryAmount, 0);
 
-		uint256 amountOut = adapter.unwrapSFRXETH(queryPath);
-		assertEq(amountOut, queryAmount);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
+
+		uint256 snapshot = vm.snapshot();
+
+		uint256 amountOut;
+
+		amountOut = adapter.unwrapSFRXETH(queryPath);
+		assertEq(amountOut, quoteAmount);
+
+		vm.revertTo(snapshot);
+
+		amountOut = adapter.exchange(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 }

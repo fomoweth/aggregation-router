@@ -5,8 +5,6 @@ import {PancakeV2Adapter} from "src/adapters/PancakeV2Adapter.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
 
-// forge test -vvv --match-path test/PancakeV2Adapter.t.sol
-
 contract PancakeV2AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
 
@@ -29,85 +27,78 @@ contract PancakeV2AdapterTest is BaseTest {
 		Currency currencyIn = currency0();
 		Currency currencyOut = currency1();
 
-		uint8 i = 0;
-		uint8 j = 1;
-
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.pancakeV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.pancakeV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testSwap1For0OnPancakeSwapV2() public {
 		Currency currencyIn = currency1();
 		Currency currencyOut = currency0();
 
-		uint8 i = 1;
-		uint8 j = 0;
-
 		uint256 amountIn = deal(currencyIn, address(adapter), ethAmount);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.pancakeV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.pancakeV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
-	function testSwap0For1unwrapWETHAfterOnPancakeSwapV2() public {
+	function testSwap0For1AndUnwrapWETHOnPancakeSwapV2() public {
 		Currency currencyIn = currency0();
-		Currency currencyOut = currency1();
-
-		uint8 i = 0;
-		uint8 j = 1;
+		Currency currencyOut = ETH;
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.pancakeV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.pancakeV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
+		assertEq(address(adapter).balance, amountOut);
 	}
 
-	function testSwap1For0WrapETHBeforeOnPancakeSwapV2() public {
-		Currency currencyIn = currency1();
+	function testWrapETHAndSwap1For0OnPancakeSwapV2() public {
+		Currency currencyIn = ETH;
 		Currency currencyOut = currency0();
-
-		uint8 i = 1;
-		uint8 j = 0;
 
 		uint256 amountIn = ethAmount;
 
 		deal(address(adapter), amountIn);
 		assertEq(address(adapter).balance, amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.pancakeV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.pancakeV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function pool() internal pure returns (address) {

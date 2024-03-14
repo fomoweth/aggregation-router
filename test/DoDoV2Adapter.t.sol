@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
 import {DoDoV2Adapter} from "src/adapters/DoDoV2Adapter.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
-
-// forge test -vvv --match-path test/DoDoV2Adapter.t.sol
 
 contract DoDoV2AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
@@ -14,15 +11,6 @@ contract DoDoV2AdapterTest is BaseTest {
 	uint256 ethAmount = 20 ether;
 
 	DoDoV2Adapter adapter;
-
-	address constant DVM_FACTORY = 0x72d220cE168C4f361dD4deE5D826a01AD8598f6C;
-	address constant DSP_FACTORY = 0x6fdDB76c93299D985f4d3FC7ac468F9A168577A4;
-	address constant DPP_FACTORY = 0x5336edE8F971339F6c0e304c66ba16F1296A2Fbe;
-
-	address constant APPROVE_PROXY = 0x335aC99bb3E51BDbF22025f092Ebc1Cf2c5cC619;
-	address constant V2_PROXY = 0xa356867fDCEa8e71AEaF87805808803806231FdC;
-	address constant DSP_PROXY = 0x4599ed18F34cFE06820E3684bF0aACB8D75c644d;
-	address constant DPP_PROXY = 0xfF7C8F518e6f1435957ed3d3E0692C94676dAE7a;
 
 	function setUp() public {
 		fork();
@@ -39,9 +27,6 @@ contract DoDoV2AdapterTest is BaseTest {
 		Currency currencyIn = base();
 		Currency currencyOut = quote();
 
-		uint8 i = 0;
-		uint8 j = 1;
-
 		uint256 amountIn = feed() != address(0)
 			? computeAmountIn(currencyIn, feed(), ethAmount)
 			: querySellQuote(pool(), ethAmount);
@@ -49,45 +34,41 @@ contract DoDoV2AdapterTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.dodoV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.dodoV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testWrapETHThenSellBaseOnDoDoV2() public {
-		Currency currencyIn = base();
+		Currency currencyIn = ETH;
 		Currency currencyOut = quote();
-
-		uint8 i = 0;
-		uint8 j = 1;
 
 		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(ETH, address(adapter), amountIn);
 		assertEq(getBalance(ETH, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, WRAP_ETH, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.dodoV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.dodoV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testSellQuoteOnDoDoV2() public {
 		Currency currencyIn = quote();
 		Currency currencyOut = base();
 
-		uint8 i = 1;
-		uint8 j = 0;
-
 		uint256 amountIn = feed() != address(0)
 			? computeAmountIn(currencyIn, feed(), ethAmount)
 			: querySellBase(pool(), ethAmount);
@@ -95,22 +76,20 @@ contract DoDoV2AdapterTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, NO_ACTION, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.dodoV2Swap(path);
-		assertEq(amountOut, queryAmount);
+		uint256 amountOut = adapter.dodoV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
 	}
 
 	function testSellQuoteThenUnwrapWETHOnDoDoV2() public {
 		Currency currencyIn = quote();
-		Currency currencyOut = base();
-
-		uint8 i = 1;
-		uint8 j = 0;
+		Currency currencyOut = ETH;
 
 		uint256 amountIn = feed() != address(0)
 			? computeAmountIn(currencyIn, feed(), ethAmount)
@@ -119,15 +98,16 @@ contract DoDoV2AdapterTest is BaseTest {
 		deal(currencyIn, address(adapter), amountIn);
 		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
-		(address queryPool, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
-		assertEq(queryPool, pool());
+		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
+		assertEq(toPool(queryPath), pool());
 		assertGt(queryAmount, 0);
 
-		bytes32 path = pack(queryPool, i, j, NO_ACTION, UNWRAP_ETH, false);
+		uint256 quoteAmount = adapter.quote(queryPath, amountIn);
+		assertEq(quoteAmount, queryAmount);
 
-		uint256 amountOut = adapter.dodoV2Swap(path);
-		assertEq(amountOut, queryAmount);
-		assertEq(address(adapter).balance, amountOut, "!balance");
+		uint256 amountOut = adapter.dodoV2Swap(queryPath);
+		assertEq(amountOut, quoteAmount);
+		assertEq(address(adapter).balance, amountOut);
 	}
 
 	function sync(address dodoPool) internal {
