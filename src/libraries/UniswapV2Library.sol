@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {FRAXSWAP_FACTORY, FRAXSWAP_PAIR_INIT_CODE_HASH, PANCAKE_V2_FACTORY, PANCAKE_V2_PAIR_INIT_CODE_HASH, SUSHI_V2_FACTORY, SUSHI_V2_PAIR_INIT_CODE_HASH, UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH} from "./Constants.sol";
 import {Currency} from "src/types/Currency.sol";
 
 /// @title UniswapV2Library
@@ -89,6 +90,57 @@ library UniswapV2Library {
 				currencyA := mload(add(ptr, 0x08))
 				currencyB := mload(add(ptr, 0x28))
 			}
+		}
+	}
+
+	function computePairAddress(
+		uint256 protocolId,
+		Currency currency0,
+		Currency currency1
+	) internal pure returns (address pair) {
+		assembly ("memory-safe") {
+			if gt(currency0, currency1) {
+				let temp := currency0
+				currency0 := currency1
+				currency1 := temp
+			}
+
+			let ptr := mload(0x40)
+
+			mstore(ptr, shl(0x60, currency0))
+			mstore(add(ptr, 0x14), shl(0x60, currency1))
+
+			let salt := keccak256(ptr, 0x28)
+
+			switch protocolId
+			case 0x01 {
+				mstore(ptr, add(hex"ff", shl(0x58, UNISWAP_V2_FACTORY)))
+				mstore(add(ptr, 0x15), salt)
+				mstore(add(ptr, 0x35), UNISWAP_V2_PAIR_INIT_CODE_HASH)
+			}
+			case 0x03 {
+				mstore(ptr, add(hex"ff", shl(0x58, SUSHI_V2_FACTORY)))
+				mstore(add(ptr, 0x15), salt)
+				mstore(add(ptr, 0x35), SUSHI_V2_PAIR_INIT_CODE_HASH)
+			}
+			case 0x04 {
+				mstore(ptr, add(hex"ff", shl(0x58, FRAXSWAP_FACTORY)))
+				mstore(add(ptr, 0x15), salt)
+				mstore(add(ptr, 0x35), FRAXSWAP_PAIR_INIT_CODE_HASH)
+			}
+			case 0x06 {
+				mstore(ptr, add(hex"ff", shl(0x58, PANCAKE_V2_FACTORY)))
+				mstore(add(ptr, 0x15), salt)
+				mstore(add(ptr, 0x35), PANCAKE_V2_PAIR_INIT_CODE_HASH)
+			}
+			default {
+				invalid()
+			}
+
+			pair := and(
+				keccak256(ptr, 0x55),
+				0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+			)
 		}
 	}
 

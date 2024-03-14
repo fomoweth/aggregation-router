@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Currency} from "src/types/Currency.sol";
+import {PANCAKE_V3_POOL_DEPLOYER, PANCAKE_V3_POOL_INIT_CODE_HASH, SUSHI_V3_FACTORY, UNISWAP_V3_FACTORY, UNISWAP_V3_POOL_INIT_CODE_HASH} from "./Constants.sol";
 import {SafeCast} from "./SafeCast.sol";
 import {SwapMath} from "./SwapMath.sol";
 import {TickBitmap} from "./TickBitmap.sol";
@@ -237,26 +238,21 @@ library UniswapV3Library {
 		address pool
 	) internal view returns (Currency currency0, Currency currency1, uint24 fee) {
 		assembly ("memory-safe") {
-			function reRevert() {
-				returndatacopy(0x00, 0x00, returndatasize())
-				revert(0x00, returndatasize())
-			}
-
 			let ptr := mload(0x40)
 			let res := add(ptr, 0x0c)
 
 			mstore(ptr, 0x0dfe1681d21220a7ddca3f430000000000000000000000000000000000000000)
 
 			if iszero(staticcall(gas(), pool, ptr, 0x04, res, 0x20)) {
-				reRevert()
+				revert(ptr, 0x04)
 			}
 
 			if iszero(staticcall(gas(), pool, add(ptr, 0x04), 0x04, add(res, 0x20), 0x20)) {
-				reRevert()
+				revert(add(ptr, 0x04), 0x04)
 			}
 
 			if iszero(staticcall(gas(), pool, add(ptr, 0x08), 0x04, add(res, 0x40), 0x20)) {
-				reRevert()
+				revert(add(ptr, 0x08), 0x04)
 			}
 
 			currency0 := mload(res)
@@ -265,9 +261,23 @@ library UniswapV3Library {
 		}
 	}
 
+	function getFee(address pool) internal view returns (uint24 fee) {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0xddca3f4300000000000000000000000000000000000000000000000000000000)
+
+			if iszero(staticcall(gas(), pool, ptr, 0x04, 0x00, 0x20)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+
+			fee := mload(0x00)
+		}
+	}
+
 	function computePoolAddress(
-		address factory,
-		bytes32 poolInitCodeHash,
+		uint256 protocolId,
 		Currency currency0,
 		Currency currency1,
 		uint24 fee
@@ -285,9 +295,25 @@ library UniswapV3Library {
 			mstore(add(ptr, 0x35), currency1)
 			mstore(add(ptr, 0x55), fee)
 
-			mstore(ptr, add(hex"ff", shl(0x58, factory)))
-			mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
-			mstore(add(ptr, 0x35), poolInitCodeHash)
+			switch protocolId
+			case 0x00 {
+				mstore(ptr, add(hex"ff", shl(0x58, UNISWAP_V3_FACTORY)))
+				mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
+				mstore(add(ptr, 0x35), UNISWAP_V3_POOL_INIT_CODE_HASH)
+			}
+			case 0x02 {
+				mstore(ptr, add(hex"ff", shl(0x58, SUSHI_V3_FACTORY)))
+				mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
+				mstore(add(ptr, 0x35), UNISWAP_V3_POOL_INIT_CODE_HASH)
+			}
+			case 0x05 {
+				mstore(ptr, add(hex"ff", shl(0x58, PANCAKE_V3_POOL_DEPLOYER)))
+				mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
+				mstore(add(ptr, 0x35), PANCAKE_V3_POOL_INIT_CODE_HASH)
+			}
+			default {
+				invalid()
+			}
 
 			pool := and(
 				keccak256(ptr, 0x55),
