@@ -20,8 +20,6 @@ library PathDecoder {
 			wrapIn := and(shr(176, path), 0xff)
 			wrapOut := and(shr(184, path), 0xff)
 		}
-
-		if (i == j) revert Errors.IdenticalCurrencyIds();
 	}
 
 	function get(bytes32 path, uint256 offset) internal pure returns (uint8 option) {

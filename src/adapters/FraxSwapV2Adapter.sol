@@ -14,11 +14,7 @@ contract FraxSwapV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 	using UniswapV2Library for address;
-
-	address internal constant FRAXSWAP_FACTORY = 0x43eC799eAdd63848443E2347C49f5f52e8Fe0F6f;
-
-	bytes32 internal constant FRAXSWAP_PAIR_INIT_CODE_HASH =
-		0x4ce0b4ab368f39e4bd03ec712dfc405eb5a36cdb0294b3887b441cd1c743ced3;
+	using UniswapV2Library for uint256;
 
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
@@ -28,18 +24,20 @@ contract FraxSwapV2Adapter is BaseAdapter {
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
+
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		bool zeroForOne = i == 0;
 
 		(Currency currencyIn, Currency currencyOut) = pool.getPairAssets(zeroForOne);
 
-		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
+		if (wrapIn == WRAP_ETH) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
+		if (wrapIn == UNWRAP_WETH) unwrapWETH(currencyIn, amountIn);
 
 		if ((amountOut = pool.getAmountOut(amountIn, zeroForOne)) == 0) {
 			revert Errors.InsufficientReserves();
@@ -53,51 +51,53 @@ contract FraxSwapV2Adapter is BaseAdapter {
 
 		pool.swap(amount0Out, amount1Out, address(this));
 
-		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
-	}
-
-	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
-		(address pool, uint8 i, uint8 j, , ) = path.decode();
-		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-
-		return pool.getAmountOut(amountIn, i == 0);
+		if (wrapOut == UNWRAP_WETH) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
-	) internal view virtual override returns (address pool, uint256 amountOut) {
-		if ((pool = computePairAddress(currencyIn, currencyOut)) != address(0)) {
-			amountOut = pool.getAmountOut(amountIn, currencyIn < currencyOut);
+	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
+		uint8 wrapIn;
+		uint8 wrapOut;
+
+		if (currencyIn.isNative()) {
+			currencyIn = WETH;
+			wrapIn = WRAP_ETH;
+		}
+
+		if (currencyOut.isNative()) {
+			currencyOut = WETH;
+			wrapOut = UNWRAP_WETH;
+		}
+
+		address pool = id.computePairAddress(currencyIn, currencyOut);
+
+		if (pool != address(0)) {
+			bool zeroForOne = currencyIn < currencyOut;
+
+			if ((amountOut = pool.getAmountOut(amountIn, zeroForOne)) != 0) {
+				assembly ("memory-safe") {
+					path := add(
+						pool,
+						add(
+							shl(160, iszero(zeroForOne)),
+							add(shl(168, zeroForOne), add(shl(176, wrapIn), shl(184, wrapOut)))
+						)
+					)
+				}
+			}
 		}
 	}
 
-	function computePairAddress(Currency currency0, Currency currency1) internal pure returns (address pair) {
-		assembly ("memory-safe") {
-			if gt(currency0, currency1) {
-				let temp := currency0
-				currency0 := currency1
-				currency1 := temp
-			}
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
 
-			let ptr := mload(0x40)
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
-			mstore(ptr, shl(0x60, currency0))
-			mstore(add(ptr, 0x14), shl(0x60, currency1))
-
-			let salt := keccak256(ptr, 0x28)
-
-			mstore(ptr, add(hex"ff", shl(0x58, FRAXSWAP_FACTORY)))
-			mstore(add(ptr, 0x15), salt)
-			mstore(add(ptr, 0x35), FRAXSWAP_PAIR_INIT_CODE_HASH)
-
-			pair := and(
-				keccak256(ptr, 0x55),
-				0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
-			)
-		}
+		return pool.getAmountOut(amountIn, i == 0);
 	}
 
 	function maxCurrencyId() internal pure virtual override returns (uint256) {

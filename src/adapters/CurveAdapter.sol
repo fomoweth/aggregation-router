@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {META_REGISTRY} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
@@ -13,8 +14,6 @@ contract CurveAdapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 
-	address internal constant META_REGISTRY = 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC;
-
 	uint8 internal constant IS_UNDERLYING_FLAG_IDX = 0;
 
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
@@ -25,19 +24,21 @@ contract CurveAdapter is BaseAdapter {
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
+
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		bool isUnderlying = path.getFlag(IS_UNDERLYING_FLAG_IDX);
 
 		Currency currencyIn = getPoolAsset(pool, i, isUnderlying);
 		Currency currencyOut = getPoolAsset(pool, j, isUnderlying);
 
-		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
+		if (wrapIn == WRAP_ETH) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
+		if (wrapIn == UNWRAP_WETH) unwrapWETH(currencyIn, amountIn);
 
 		if (currencyIn.allowance(address(this), pool) < amountIn) {
 			currencyIn.approve(pool, amountIn);
@@ -47,27 +48,45 @@ contract CurveAdapter is BaseAdapter {
 
 		amountOut = currencyOut.balanceOfSelf();
 
-		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
-	}
-
-	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
-		(address pool, uint8 i, uint8 j, , ) = path.decode();
-		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-
-		return getDy(pool, i, j, amountIn, path.getFlag(IS_UNDERLYING_FLAG_IDX));
+		if (wrapOut == WRAP_ETH) wrapETH(currencyOut, amountOut);
+		else if (wrapOut == UNWRAP_WETH) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
-	) internal view virtual override returns (address pool, uint256 amountOut) {
-		pool = findPoolFor(currencyIn, currencyOut);
+	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
+		address pool = findPoolFor(currencyIn, currencyOut);
 
 		(uint8 i, uint8 j, bool isUnderlying) = getCoinIndices(pool, currencyIn, currencyOut);
 
-		amountOut = getDy(pool, i, j, amountIn, isUnderlying);
+		if ((amountOut = getDy(pool, i, j, amountIn, isUnderlying)) != 0) {
+			assembly ("memory-safe") {
+				path := add(
+					pool,
+					add(
+						shl(160, i),
+						add(
+							shl(168, j),
+							add(shl(176, NO_ACTION), add(shl(184, NO_ACTION), shl(192, isUnderlying)))
+						)
+					)
+				)
+			}
+		}
+	}
+
+	function _quote(
+		bytes32 path,
+		uint256 amountIn
+	) internal view virtual override returns (uint256 amountOut) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
+
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
+
+		return getDy(pool, i, j, amountIn, path.getFlag(IS_UNDERLYING_FLAG_IDX));
 	}
 
 	function exchange(

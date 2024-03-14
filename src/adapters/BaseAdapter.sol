@@ -14,7 +14,7 @@ abstract contract BaseAdapter is IAdapter {
 
 	uint8 internal constant NO_ACTION = 0;
 	uint8 internal constant WRAP_ETH = 1;
-	uint8 internal constant UNWRAP_ETH = 2;
+	uint8 internal constant UNWRAP_WETH = 2;
 
 	constructor(uint256 _id, Currency _weth) {
 		id = _id;
@@ -35,14 +35,8 @@ abstract contract BaseAdapter is IAdapter {
 		}
 	}
 
-	function quote(
-		Currency currencyIn,
-		Currency currencyOut,
-		uint256 amountIn
-	) external view returns (address pool, uint256 amountOut) {
-		if (currencyIn != currencyOut && amountIn != 0) {
-			(pool, amountOut) = _quote(currencyIn, currencyOut, amountIn);
-		}
+	function quote(bytes32 path, uint256 amountIn) external view returns (uint256 amountOut) {
+		if (amountIn != 0) amountOut = _quote(path, amountIn);
 	}
 
 	function wrapETH(Currency currency, uint256 amount) internal {
@@ -90,11 +84,7 @@ abstract contract BaseAdapter is IAdapter {
 		uint256 amountIn
 	) internal view virtual returns (bytes32 path, uint256 amountOut);
 
-	function _quote(
-		Currency currencyIn,
-		Currency currencyOut,
-		uint256 amountIn
-	) internal view virtual returns (address pool, uint256 amountOut);
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual returns (uint256 amountOut);
 
 	function maxCurrencyId() internal pure virtual returns (uint256);
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
+import {APPROVE_PROXY, DODO_ZOO, SELL_HELPER} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
@@ -14,10 +14,6 @@ contract DoDoV1Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 
-	address internal constant DODO_ZOO = 0x3A97247DF274a17C59A3bd12735ea3FcDFb49950;
-	address internal constant APPROVE_PROXY = 0x335aC99bb3E51BDbF22025f092Ebc1Cf2c5cC619;
-	address internal constant SELL_HELPER = 0x533dA777aeDCE766CEAe696bf90f8541A4bA80Eb;
-
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
 	function dodoV1Swap(bytes32 path) external payable returns (uint256) {
@@ -26,21 +22,23 @@ contract DoDoV1Adapter is BaseAdapter {
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
+
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		bool zeroForOne = i == 0;
 
 		(Currency currencyIn, Currency currencyOut) = getPoolAssets(pool);
 		if (!zeroForOne) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
-		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
+		if (wrapIn == WRAP_ETH) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
+		if (wrapIn == UNWRAP_WETH) unwrapWETH(currencyIn, amountIn);
 
-		uint256 maxPayQuote = _quote(pool, amountIn, zeroForOne, false);
+		uint256 maxPayQuote = quoteFor(pool, amountIn, zeroForOne, false);
 
 		if (currencyIn.allowance(address(this), pool) < amountIn) {
 			currencyIn.approve(pool, amountIn);
@@ -73,51 +71,57 @@ contract DoDoV1Adapter is BaseAdapter {
 			amountOut := mload(0x00)
 		}
 
-		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
-	}
-
-	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
-		(address pool, uint8 i, uint8 j, , ) = path.decode();
-		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-
-		return _quote(pool, amountIn, i == 0, true);
+		if (wrapOut == UNWRAP_WETH) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
-	) internal view virtual override returns (address pool, uint256 amountOut) {
-		if (isRegistered(currencyIn, currencyOut)) {
-			if ((pool = getPool(currencyIn, currencyOut)) == address(0)) {
-				pool = getPool(currencyOut, currencyIn);
-			}
+	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
+		uint8 wrapIn;
+		uint8 wrapOut;
 
-			if (pool != address(0)) {
-				amountOut = _quote(pool, amountIn, isBase(pool, currencyIn), true);
+		if (currencyIn.isNative()) {
+			currencyIn = WETH;
+			wrapIn = WRAP_ETH;
+		}
+
+		if (currencyOut.isNative()) {
+			currencyOut = WETH;
+			wrapOut = UNWRAP_WETH;
+		}
+
+		if (isRegistered(currencyIn, currencyOut)) {
+			address pool = getPool(currencyIn, currencyOut);
+			if (pool == address(0)) pool = getPool(currencyOut, currencyIn);
+
+			bool baseForQuote = isBase(pool, currencyIn);
+
+			if ((amountOut = quoteFor(pool, amountIn, baseForQuote, true)) != 0) {
+				assembly ("memory-safe") {
+					path := add(
+						pool,
+						add(
+							shl(160, iszero(baseForQuote)),
+							add(shl(168, baseForQuote), add(shl(176, wrapIn), shl(184, wrapOut)))
+						)
+					)
+				}
 			}
 		}
 	}
 
-	// function querySellQuoteToken(address pool, uint256 amountIn) internal view returns (uint256 amountOut) {
-	// 	assembly ("memory-safe") {
-	// 		let ptr := mload(0x40)
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
 
-	// 		mstore(ptr, 0xca19ebd900000000000000000000000000000000000000000000000000000000) // querySellQuoteToken(address,uint256)
-	// 		mstore(add(ptr, 0x04), and(pool, 0xffffffffffffffffffffffffffffffffffffffff))
-	// 		mstore(add(ptr, 0x24), amountIn)
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
-	// 		if iszero(staticcall(gas(), SELL_HELPER, ptr, 0x44, 0x00, 0x20)) {
-	// 			returndatacopy(ptr, 0x00, returndatasize())
-	// 			revert(ptr, returndatasize())
-	// 		}
+		return quoteFor(pool, amountIn, i == 0, true);
+	}
 
-	// 		amountOut := mload(0x00)
-	// 	}
-	// }
-
-	function _quote(
+	function quoteFor(
 		address pool,
 		uint256 amountIn,
 		bool sellBase,
@@ -187,6 +191,27 @@ contract DoDoV1Adapter is BaseAdapter {
 		return abi.decode(returndata, (address[]));
 	}
 
+	function getPoolAssets(
+		address pool
+	) internal view returns (Currency baseCurrency, Currency quoteCurrency) {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x4a248d2ad4b97046000000000000000000000000000000000000000000000000)
+
+			if iszero(staticcall(gas(), pool, ptr, 0x04, add(ptr, 0x08), 0x20)) {
+				revert(ptr, 0x04)
+			}
+
+			if iszero(staticcall(gas(), pool, add(ptr, 0x04), 0x04, add(ptr, 0x28), 0x20)) {
+				revert(add(ptr, 0x04), 0x04)
+			}
+
+			baseCurrency := mload(add(ptr, 0x08))
+			quoteCurrency := mload(add(ptr, 0x28))
+		}
+	}
+
 	function getPool(Currency baseCurrency, Currency quoteCurrency) internal view returns (address pool) {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
@@ -218,27 +243,6 @@ contract DoDoV1Adapter is BaseAdapter {
 			}
 
 			res := mload(0x00)
-		}
-	}
-
-	function getPoolAssets(
-		address pool
-	) internal view returns (Currency baseCurrency, Currency quoteCurrency) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			mstore(ptr, 0x4a248d2ad4b97046000000000000000000000000000000000000000000000000)
-
-			if iszero(staticcall(gas(), pool, ptr, 0x04, add(ptr, 0x08), 0x20)) {
-				revert(ptr, 0x04)
-			}
-
-			if iszero(staticcall(gas(), pool, add(ptr, 0x04), 0x04, add(ptr, 0x28), 0x20)) {
-				revert(add(ptr, 0x04), 0x04)
-			}
-
-			baseCurrency := mload(add(ptr, 0x08))
-			quoteCurrency := mload(add(ptr, 0x28))
 		}
 	}
 

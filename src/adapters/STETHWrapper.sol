@@ -26,87 +26,63 @@ contract STETHWrapper is BaseAdapter {
 	}
 
 	function wrapSTETH(bytes32 path) external payable returns (uint256) {
-		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
-		if (i != ETH_IDX || j != STETH_IDX) revert Errors.InvalidCurrencyId();
-
-		if (wrapIn == UNWRAP_ETH) unwrapWETH(WETH, WETH.balanceOfSelf());
-
-		uint256 amountIn = address(this).balance;
-		if (amountIn == 0) revert Errors.InsufficientAmountIn();
-
-		return invoke(STETH, i, amountIn);
+		return _exchange(path);
 	}
 
 	function wrapWSTETH(bytes32 path) external payable returns (uint256) {
-		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
-		if ((i != ETH_IDX && i != STETH_IDX) || j != WSTETH_IDX) revert Errors.InvalidCurrencyId();
-
-		uint256 amountIn;
-
-		if (i == ETH_IDX) {
-			if (wrapIn == UNWRAP_ETH) unwrapWETH(WETH, WETH.balanceOfSelf());
-			if ((amountIn = address(this).balance) == 0) revert Errors.InsufficientAmountIn();
-
-			if ((amountIn = invoke(STETH, ETH_IDX, amountIn)) == 0) revert Errors.InsufficientAmountIn();
-		} else {
-			if ((amountIn = sharesOf(STETH)) == 0) revert Errors.InsufficientAmountIn();
-		}
-
-		STETH.approve(WSTETH.toAddress(), amountIn);
-
-		return invoke(WSTETH, STETH_IDX, amountIn);
+		return _exchange(path);
 	}
 
 	function unwrapWSTETH(bytes32 path) external payable returns (uint256) {
-		(, uint8 i, uint8 j, , ) = path.decode();
-		if (i != WSTETH_IDX || j != STETH_IDX) revert Errors.InvalidCurrencyId();
-
-		uint256 amountIn = WSTETH.balanceOfSelf();
-		if (amountIn == 0) revert Errors.InsufficientAmountIn();
-
-		return invoke(WSTETH, WSTETH_IDX, amountIn);
+		return _exchange(path);
 	}
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
 
-		if (i == ETH_IDX && j == STETH_IDX) {
-			if (wrapIn == UNWRAP_ETH) unwrapWETH(WETH, WETH.balanceOfSelf());
+		if (i > maxCurrencyId() || (j != STETH_IDX && j != WSTETH_IDX)) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
-			return invoke(STETH, ETH_IDX, address(this).balance);
-		} else if (i == ETH_IDX && j == WSTETH_IDX) {
-			if (wrapIn == UNWRAP_ETH) unwrapWETH(WETH, WETH.balanceOfSelf());
-
-			return invoke(WSTETH, STETH_IDX, invoke(STETH, ETH_IDX, address(this).balance));
-		} else if (i == STETH_IDX && j == WSTETH_IDX) {
-			return invoke(WSTETH, STETH_IDX, sharesOf(STETH));
-		} else if (i == WSTETH_IDX && j == STETH_IDX) {
-			return invoke(WSTETH, WSTETH_IDX, WSTETH.balanceOfSelf());
+		// wstETH -> stETH
+		if (i == WSTETH_IDX && j == STETH_IDX) {
+			amountOut = invoke(WSTETH, i, WSTETH.balanceOfSelf());
 		} else {
-			revert Errors.InvalidCurrencyId();
+			// ETH -> stETH
+			if (i == ETH_IDX) {
+				if (wrapIn == UNWRAP_WETH) unwrapWETH(WETH, WETH.balanceOfSelf());
+
+				amountOut = invoke(STETH, i, address(this).balance);
+			}
+
+			// stETH -> wstETH
+			if (j == WSTETH_IDX) {
+				uint256 amountIn = sharesOf(STETH);
+
+				STETH.approve(WSTETH.toAddress(), amountIn);
+
+				amountOut = invoke(WSTETH, STETH_IDX, amountIn);
+			}
 		}
 	}
 
 	function invoke(Currency target, uint8 i, uint256 amountIn) internal returns (uint256 amountOut) {
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (i == STETH_IDX) STETH.approve(WSTETH.toAddress(), amountIn);
-
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 
 			switch i
+			// ETH -> stETH
 			case 0x00 {
 				mstore(ptr, 0xa1903eab00000000000000000000000000000000000000000000000000000000) // submit(address)
 			}
+			// stETH -> wstETH
 			case 0x01 {
 				mstore(ptr, 0xea598cb000000000000000000000000000000000000000000000000000000000) // wrap(uint256)
 			}
+			// wstETH -> stETH
 			case 0x02 {
 				mstore(ptr, 0xde0e9a3e00000000000000000000000000000000000000000000000000000000) // unwrap(uint256)
-			}
-			default {
-				invalid()
 			}
 
 			mstore(add(ptr, 0x04), mul(amountIn, gt(i, 0x00)))
@@ -130,28 +106,28 @@ contract STETHWrapper is BaseAdapter {
 		Currency wsteth = WSTETH;
 
 		Currency pool = wsteth;
-		uint8 wrapIn = currencyIn == weth ? UNWRAP_ETH : NO_ACTION;
+		uint8 wrapIn = currencyIn == weth ? UNWRAP_WETH : NO_ACTION;
 		uint8 i;
 		uint8 j;
 
 		if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == steth) {
-			amountOut = _quote(steth, ETH_IDX, amountIn);
+			amountOut = convert(steth, ETH_IDX, amountIn);
 
 			pool = steth;
 			i = ETH_IDX;
 			j = STETH_IDX;
 		} else if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == wsteth) {
-			amountOut = _quote(wsteth, STETH_IDX, _quote(steth, ETH_IDX, amountIn));
+			amountOut = convert(wsteth, STETH_IDX, convert(steth, ETH_IDX, amountIn));
 
 			i = ETH_IDX;
 			j = WSTETH_IDX;
 		} else if (currencyIn == steth && currencyOut == wsteth) {
-			amountOut = _quote(wsteth, STETH_IDX, amountIn);
+			amountOut = convert(wsteth, STETH_IDX, amountIn);
 
 			i = STETH_IDX;
 			j = WSTETH_IDX;
 		} else if (currencyIn == wsteth && currencyOut == steth) {
-			amountOut = _quote(wsteth, WSTETH_IDX, amountIn);
+			amountOut = convert(wsteth, WSTETH_IDX, amountIn);
 
 			i = WSTETH_IDX;
 			j = STETH_IDX;
@@ -165,44 +141,43 @@ contract STETHWrapper is BaseAdapter {
 	}
 
 	function _quote(
-		Currency currencyIn,
-		Currency currencyOut,
+		bytes32 path,
 		uint256 amountIn
-	) internal view virtual override returns (address, uint256) {
-		Currency steth = STETH;
-		Currency wsteth = WSTETH;
+	) internal view virtual override returns (uint256 amountOut) {
+		(, uint8 i, uint8 j, , ) = path.decode();
 
-		if (currencyIn.isNative() || currencyIn == WETH) {
-			if (currencyOut == steth) {
-				return (steth.toAddress(), _quote(steth, ETH_IDX, amountIn));
-			} else if (currencyOut == wsteth) {
-				return (wsteth.toAddress(), _quote(wsteth, STETH_IDX, _quote(steth, ETH_IDX, amountIn)));
-			}
-		} else if (currencyIn == steth && currencyOut == wsteth) {
-			return (wsteth.toAddress(), _quote(wsteth, STETH_IDX, amountIn));
-		} else if (currencyIn == wsteth && currencyOut == steth) {
-			return (wsteth.toAddress(), _quote(wsteth, WSTETH_IDX, amountIn));
+		if (i > maxCurrencyId() || (j != STETH_IDX && j != WSTETH_IDX)) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
+
+		if (j == STETH_IDX) {
+			// ETH -> stETH
+			if (i == ETH_IDX) return convert(STETH, i, amountIn);
+			// wstETH -> stETH
+			else return convert(WSTETH, i, amountIn);
+		} else {
+			// stETH -> wstETH
+			if (i == STETH_IDX) return convert(WSTETH, i, amountIn);
+			// ETH -> stETH -> wstETH
+			else return convert(WSTETH, STETH_IDX, convert(STETH, i, amountIn));
 		}
-
-		return (address(0), 0);
 	}
 
-	function _quote(Currency target, uint8 i, uint256 amountIn) internal view returns (uint256 amountOut) {
+	function convert(Currency target, uint8 i, uint256 amountIn) internal view returns (uint256 amountOut) {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 
 			switch i
+			// ETH -> stETH
 			case 0x00 {
 				mstore(ptr, 0x1920845100000000000000000000000000000000000000000000000000000000) // getSharesByPooledEth(uint256)
 			}
+			// stETH -> wstETH
 			case 0x01 {
 				mstore(ptr, 0xb0e3890000000000000000000000000000000000000000000000000000000000) // getWstETHByStETH(uint256)
 			}
+			// wstETH -> stETH
 			case 0x02 {
 				mstore(ptr, 0xbb2952fc00000000000000000000000000000000000000000000000000000000) // getStETHByWstETH(uint256)
-			}
-			default {
-				invalid()
 			}
 
 			mstore(add(ptr, 0x04), amountIn)

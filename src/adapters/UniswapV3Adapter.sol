@@ -17,15 +17,12 @@ contract UniswapV3Adapter is BaseAdapter {
 	using PathDecoder for bytes32;
 	using SafeCast for uint256;
 	using UniswapV3Library for address;
-
-	address internal constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-
-	bytes32 internal constant UNISWAP_V3_POOL_INIT_CODE_HASH =
-		0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
+	using UniswapV3Library for uint256;
 
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
 	function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
+		uint256 protocolId;
 		Currency currencyIn;
 		Currency currencyOut;
 		uint24 fee;
@@ -36,16 +33,23 @@ contract UniswapV3Adapter is BaseAdapter {
 			}
 
 			let firstWord := calldataload(data.offset)
-			currencyIn := shr(96, firstWord)
-			fee := and(shr(72, firstWord), 0xffffff)
-			currencyOut := shr(96, calldataload(add(data.offset, 23)))
+			protocolId := shr(248, firstWord)
+			currencyIn := and(shr(88, firstWord), 0xffffffffffffffffffffffffffffffffffffffff)
+			fee := and(shr(64, firstWord), 0xffffff)
+			currencyOut := shr(96, calldataload(add(data.offset, 24)))
 		}
 
-		address pool = computePoolAddress(currencyIn, currencyOut, fee);
+		address pool = protocolId.computePoolAddress(currencyIn, currencyOut, fee);
 
 		if (pool != msg.sender) revert Errors.InvalidPool();
 
-		currencyIn.transfer(pool, amount0Delta > 0 ? uint256(amount0Delta) : uint256(amount1Delta));
+		(bool isExactInput, uint256 amountToPay) = amount0Delta > 0
+			? (currencyIn < currencyOut, uint256(amount0Delta))
+			: (currencyOut < currencyIn, uint256(amount1Delta));
+
+		if (!isExactInput) revert Errors.InvalidDirection();
+
+		currencyIn.transfer(pool, amountToPay);
 	}
 
 	function uniswapV3Swap(bytes32 path) external payable returns (uint256) {
@@ -54,17 +58,19 @@ contract UniswapV3Adapter is BaseAdapter {
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
+
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		(Currency currencyIn, Currency currencyOut, uint24 fee) = pool.getPoolKey();
 		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
-		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
+		if (wrapIn == WRAP_ETH) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
+		if (wrapIn == UNWRAP_WETH) unwrapWETH(currencyIn, amountIn);
 
 		bool zeroForOne = currencyIn < currencyOut;
 
@@ -73,40 +79,33 @@ contract UniswapV3Adapter is BaseAdapter {
 			zeroForOne,
 			amountIn.toInt256(),
 			(zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1),
-			abi.encodePacked(currencyIn, fee, currencyOut)
+			abi.encodePacked(uint8(id), currencyIn, fee, currencyOut)
 		);
 
 		amountOut = uint256(-(zeroForOne ? amount1Delta : amount0Delta));
 
-		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
-	}
-
-	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
-		(address pool, uint8 i, uint8 j, , ) = path.decode();
-		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-
-		bool zeroForOne = i == 0;
-
-		(Currency currencyIn, Currency currencyOut, uint24 fee) = pool.getPoolKey();
-		if (!zeroForOne) (currencyIn, currencyOut) = (currencyOut, currencyIn);
-
-		(int256 amount0Delta, int256 amount1Delta) = pool.computeDeltaAmounts(
-			fee,
-			zeroForOne,
-			amountIn.toInt256()
-		);
-
-		return uint256(-(zeroForOne ? amount1Delta : amount0Delta));
+		if (wrapOut == UNWRAP_WETH) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
-	) internal view virtual override returns (address pool, uint256 amountOut) {
-		uint24 fee;
-		(pool, fee) = getPoolWithMostLiquidity(currencyIn, currencyOut);
+	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
+		uint8 wrapIn;
+		uint8 wrapOut;
+
+		if (currencyIn.isNative()) {
+			currencyIn = WETH;
+			wrapIn = WRAP_ETH;
+		}
+
+		if (currencyOut.isNative()) {
+			currencyOut = WETH;
+			wrapOut = UNWRAP_WETH;
+		}
+
+		(address pool, uint24 fee) = getPoolWithMostLiquidity(currencyIn, currencyOut);
 
 		if (pool != address(0)) {
 			bool zeroForOne = currencyIn < currencyOut;
@@ -117,8 +116,35 @@ contract UniswapV3Adapter is BaseAdapter {
 				amountIn.toInt256()
 			);
 
-			amountOut = uint256(-(zeroForOne ? amount1Delta : amount0Delta));
+			if ((amountOut = uint256(-(zeroForOne ? amount1Delta : amount0Delta))) != 0) {
+				assembly ("memory-safe") {
+					path := add(
+						pool,
+						add(
+							shl(160, iszero(zeroForOne)),
+							add(shl(168, zeroForOne), add(shl(176, wrapIn), shl(184, wrapOut)))
+						)
+					)
+				}
+			}
 		}
+	}
+
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
+
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
+
+		bool zeroForOne = i == 0;
+
+		(int256 amount0Delta, int256 amount1Delta) = pool.computeDeltaAmounts(
+			pool.getFee(),
+			zeroForOne,
+			amountIn.toInt256()
+		);
+
+		return uint256(-(zeroForOne ? amount1Delta : amount0Delta));
 	}
 
 	function getPoolWithMostLiquidity(
@@ -131,13 +157,14 @@ contract UniswapV3Adapter is BaseAdapter {
 		feeAmounts[2] = 3000;
 		feeAmounts[3] = 10000;
 
+		uint256 protocolId = id;
 		address poolCurrent;
 		uint128 liquidityCurrent;
 		uint128 liquidityMost;
 		uint256 i;
 
 		while (i < 4) {
-			poolCurrent = computePoolAddress(currencyA, currencyB, feeAmounts[i]);
+			poolCurrent = protocolId.computePoolAddress(currencyA, currencyB, feeAmounts[i]);
 
 			liquidityCurrent = poolCurrent.getPoolLiquidity();
 
@@ -150,35 +177,6 @@ contract UniswapV3Adapter is BaseAdapter {
 			unchecked {
 				i = i + 1;
 			}
-		}
-	}
-
-	function computePoolAddress(
-		Currency currency0,
-		Currency currency1,
-		uint24 fee
-	) internal pure returns (address pool) {
-		assembly ("memory-safe") {
-			if gt(currency0, currency1) {
-				let temp := currency0
-				currency0 := currency1
-				currency1 := temp
-			}
-
-			let ptr := mload(0x40)
-
-			mstore(add(ptr, 0x15), currency0)
-			mstore(add(ptr, 0x35), currency1)
-			mstore(add(ptr, 0x55), fee)
-
-			mstore(ptr, add(hex"ff", shl(0x58, UNISWAP_V3_FACTORY)))
-			mstore(add(ptr, 0x15), keccak256(add(ptr, 0x15), 0x60))
-			mstore(add(ptr, 0x35), UNISWAP_V3_POOL_INIT_CODE_HASH)
-
-			pool := and(
-				keccak256(ptr, 0x55),
-				0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
-			)
 		}
 	}
 

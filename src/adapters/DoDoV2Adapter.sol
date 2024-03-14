@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {DPP_FACTORY, DSP_FACTORY, DVM_FACTORY} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
@@ -13,10 +14,6 @@ contract DoDoV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 
-	address internal constant DVM_FACTORY = 0x72d220cE168C4f361dD4deE5D826a01AD8598f6C;
-	address internal constant DSP_FACTORY = 0x6fdDB76c93299D985f4d3FC7ac468F9A168577A4;
-	address internal constant DPP_FACTORY = 0x5336edE8F971339F6c0e304c66ba16F1296A2Fbe;
-
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
 	function dodoV2Swap(bytes32 path) external payable returns (uint256) {
@@ -25,17 +22,19 @@ contract DoDoV2Adapter is BaseAdapter {
 
 	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
+
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
 
 		(Currency currencyIn, Currency currencyOut) = getPoolAssets(pool);
 		if (i != 0) (currencyIn, currencyOut) = (currencyOut, currencyIn);
 
-		if (wrapIn == 1) wrapETH(currencyIn, address(this).balance);
+		if (wrapIn == WRAP_ETH) wrapETH(currencyIn, address(this).balance);
 
 		uint256 amountIn = currencyIn.balanceOfSelf();
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		if (wrapIn == 2) unwrapWETH(currencyIn, amountIn);
+		if (wrapIn == UNWRAP_WETH) unwrapWETH(currencyIn, amountIn);
 
 		currencyIn.transfer(pool, amountIn);
 
@@ -60,26 +59,32 @@ contract DoDoV2Adapter is BaseAdapter {
 			amountOut := mload(0x00)
 		}
 
-		if (wrapOut == 1) wrapETH(currencyOut, amountOut);
-		else if (wrapOut == 2) unwrapWETH(currencyOut, amountOut);
-	}
-
-	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
-		(address pool, uint8 i, uint8 j, , ) = path.decode();
-		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
-
-		return _quote(pool, amountIn, i == 0);
+		if (wrapOut == UNWRAP_WETH) unwrapWETH(currencyOut, amountOut);
 	}
 
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
 		uint256 amountIn
-	) internal view virtual override returns (address pool, uint256 amountOut) {
-		(pool, amountOut) = _query(DVM_FACTORY, currencyIn, currencyOut, amountIn);
+	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
+		uint8 wrapIn;
+		uint8 wrapOut;
+
+		if (currencyIn.isNative()) {
+			currencyIn = WETH;
+			wrapIn = WRAP_ETH;
+		}
+
+		if (currencyOut.isNative()) {
+			currencyOut = WETH;
+			wrapOut = UNWRAP_WETH;
+		}
+
+		address pool;
+		(pool, amountOut) = queryFor(DVM_FACTORY, currencyIn, currencyOut, amountIn);
 
 		{
-			(address poolCurrent, uint256 quotedCurrent) = _query(
+			(address poolCurrent, uint256 quotedCurrent) = queryFor(
 				DSP_FACTORY,
 				currencyIn,
 				currencyOut,
@@ -93,7 +98,7 @@ contract DoDoV2Adapter is BaseAdapter {
 		}
 
 		{
-			(address poolCurrent, uint256 quotedCurrent) = _query(
+			(address poolCurrent, uint256 quotedCurrent) = queryFor(
 				DPP_FACTORY,
 				currencyIn,
 				currencyOut,
@@ -105,9 +110,32 @@ contract DoDoV2Adapter is BaseAdapter {
 				amountOut = quotedCurrent;
 			}
 		}
+
+		if (pool != address(0) && amountOut != 0) {
+			bool baseForQuote = isBase(pool, currencyIn);
+
+			assembly ("memory-safe") {
+				path := add(
+					pool,
+					add(
+						shl(160, iszero(baseForQuote)),
+						add(shl(168, baseForQuote), add(shl(176, wrapIn), shl(184, wrapOut)))
+					)
+				)
+			}
+		}
 	}
 
-	function _query(
+	function _quote(bytes32 path, uint256 amountIn) internal view virtual override returns (uint256) {
+		(address pool, uint8 i, uint8 j, , ) = path.decode();
+
+		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
+		if (i == j) revert Errors.IdenticalCurrencyIds();
+
+		return quoteFor(pool, amountIn, i == 0);
+	}
+
+	function queryFor(
 		address factory,
 		Currency currencyIn,
 		Currency currencyOut,
@@ -123,7 +151,7 @@ contract DoDoV2Adapter is BaseAdapter {
 				address poolCurrent = pools[i];
 
 				if (poolCurrent != address(0)) {
-					uint256 quotedCurrent = _quote(poolCurrent, amountIn, isBase(poolCurrent, currencyIn));
+					uint256 quotedCurrent = quoteFor(poolCurrent, amountIn, isBase(poolCurrent, currencyIn));
 
 					if (quotedCurrent > amountOut) {
 						pool = poolCurrent;
@@ -147,7 +175,7 @@ contract DoDoV2Adapter is BaseAdapter {
 				address poolCurrent = pools[i];
 
 				if (poolCurrent != address(0)) {
-					uint256 quotedCurrent = _quote(poolCurrent, amountIn, isBase(poolCurrent, currencyIn));
+					uint256 quotedCurrent = quoteFor(poolCurrent, amountIn, isBase(poolCurrent, currencyIn));
 
 					if (quotedCurrent > amountOut) {
 						pool = poolCurrent;
@@ -162,7 +190,11 @@ contract DoDoV2Adapter is BaseAdapter {
 		}
 	}
 
-	function _quote(address pool, uint256 amountIn, bool sellBase) internal view returns (uint256 amountOut) {
+	function quoteFor(
+		address pool,
+		uint256 amountIn,
+		bool sellBase
+	) internal view returns (uint256 amountOut) {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 
