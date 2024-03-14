@@ -19,10 +19,10 @@ contract SushiV2Adapter is BaseAdapter {
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 
 	function sushiV2Swap(bytes32 path) external payable returns (uint256 amountOut) {
-		return _exchange(path);
+		return _swap(path);
 	}
 
-	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+	function _swap(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(address pool, uint8 i, uint8 j, uint8 wrapIn, uint8 wrapOut) = path.decode();
 
 		if (i > maxCurrencyId() || j > maxCurrencyId()) revert Errors.InvalidCurrencyId();
