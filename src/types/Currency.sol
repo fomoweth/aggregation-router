@@ -41,6 +41,8 @@ library CurrencyLibrary {
 
 	address internal constant NATIVE_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+	Currency internal constant NATIVE = Currency.wrap(NATIVE_ADDRESS);
+
 	function approve(Currency currency, address spender, uint256 amount) internal {
 		if (!_approve(currency, spender, amount)) {
 			if (!_approve(currency, spender, 0) || !_approve(currency, spender, amount)) {

@@ -5,12 +5,12 @@ import {FRXETH_MINTER} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseAdapter} from "./BaseAdapter.sol";
+import {BaseWrapper} from "./BaseWrapper.sol";
 
 /// @title FRXETHWrapper
 /// @notice Performs wrapping and unwrapping for frxETH and sfrxETH
 
-contract FRXETHWrapper is BaseAdapter {
+contract FRXETHWrapper is BaseWrapper {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 
@@ -21,24 +21,24 @@ contract FRXETHWrapper is BaseAdapter {
 	uint8 internal constant FRXETH_IDX = 1;
 	uint8 internal constant SFRXETH_IDX = 2;
 
-	constructor(uint256 _id, Currency _weth, Currency _frxeth, Currency _sfrxeth) BaseAdapter(_id, _weth) {
+	constructor(uint256 _id, Currency _weth, Currency _frxeth, Currency _sfrxeth) BaseWrapper(_id, _weth) {
 		FRXETH = _frxeth;
 		SFRXETH = _sfrxeth;
 	}
 
 	function wrapFRXETH(bytes32 path) external payable returns (uint256) {
-		return _exchange(path);
+		return invoke(path);
 	}
 
 	function wrapSFRXETH(bytes32 path) external payable returns (uint256) {
-		return _exchange(path);
+		return invoke(path);
 	}
 
 	function unwrapSFRXETH(bytes32 path) external payable returns (uint256) {
-		return _exchange(path);
+		return invoke(path);
 	}
 
-	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+	function invoke(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
 
 		if (i > maxCurrencyId() || (j != FRXETH_IDX && j != SFRXETH_IDX)) revert Errors.InvalidCurrencyId();
@@ -58,10 +58,10 @@ contract FRXETHWrapper is BaseAdapter {
 
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
-		return invoke(i, j, amountIn);
+		return _invoke(i, j, amountIn);
 	}
 
-	function invoke(uint8 i, uint8 j, uint256 amountIn) internal returns (uint256 amountOut) {
+	function _invoke(uint8 i, uint8 j, uint256 amountIn) internal returns (uint256 amountOut) {
 		Currency sfrxeth = SFRXETH;
 
 		assembly ("memory-safe") {
@@ -125,45 +125,42 @@ contract FRXETHWrapper is BaseAdapter {
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
-		uint256 amountIn
+		uint256 amountIn,
+		bool
 	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
-		Currency weth = WETH;
-		Currency frxeth = FRXETH;
-		Currency sfrxeth = SFRXETH;
-
 		Currency pool;
 		uint8 i;
 		uint8 j;
+		uint8 wrapIn;
 
-		if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == frxeth) {
-			pool = frxeth;
+		if (currencyIn == WETH) {
+			wrapIn = UNWRAP_WETH;
+			currencyIn = CurrencyLibrary.NATIVE;
+		}
+
+		if (currencyIn.isNative() && currencyOut == FRXETH) {
+			pool = FRXETH;
 			i = ETH_IDX;
 			j = FRXETH_IDX;
-		} else if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == sfrxeth) {
-			pool = sfrxeth;
+		} else if (currencyIn.isNative() && currencyOut == SFRXETH) {
+			pool = SFRXETH;
 			i = ETH_IDX;
 			j = SFRXETH_IDX;
-		} else if (currencyIn == frxeth && currencyOut == sfrxeth) {
-			pool = sfrxeth;
+		} else if (currencyIn == FRXETH && currencyOut == SFRXETH) {
+			pool = SFRXETH;
 			i = FRXETH_IDX;
 			j = SFRXETH_IDX;
-		} else if (currencyIn == sfrxeth && currencyOut == frxeth) {
-			pool = sfrxeth;
+		} else if (currencyIn == SFRXETH && currencyOut == FRXETH) {
+			pool = SFRXETH;
 			i = SFRXETH_IDX;
 			j = FRXETH_IDX;
 		}
 
-		if ((amountOut = convert(sfrxeth, i, j, amountIn)) != 0) {
+		if ((amountOut = convert(SFRXETH, i, j, amountIn)) != 0) {
 			assembly ("memory-safe") {
 				path := add(
 					pool,
-					add(
-						shl(160, i),
-						add(
-							shl(168, j),
-							add(shl(176, mul(eq(currencyIn, weth), UNWRAP_WETH)), shl(184, NO_ACTION))
-						)
-					)
+					add(shl(160, i), add(shl(168, j), add(shl(176, wrapIn), shl(184, NO_ACTION))))
 				)
 			}
 		}

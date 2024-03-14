@@ -4,12 +4,13 @@ pragma solidity ^0.8.20;
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseAdapter} from "./BaseAdapter.sol";
+import {BaseAdapter} from "../BaseAdapter.sol";
+import {BaseWrapper} from "./BaseWrapper.sol";
 
 /// @title STETHWrapper
 /// @notice Performs wrapping and unwrapping for stETH and wstETH
 
-contract STETHWrapper is BaseAdapter {
+contract STETHWrapper is BaseWrapper {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
 
@@ -20,24 +21,24 @@ contract STETHWrapper is BaseAdapter {
 	uint8 internal constant STETH_IDX = 1;
 	uint8 internal constant WSTETH_IDX = 2;
 
-	constructor(uint256 _id, Currency _weth, Currency _steth, Currency _wsteth) BaseAdapter(_id, _weth) {
+	constructor(uint256 _id, Currency _weth, Currency _steth, Currency _wsteth) BaseWrapper(_id, _weth) {
 		STETH = _steth;
 		WSTETH = _wsteth;
 	}
 
 	function wrapSTETH(bytes32 path) external payable returns (uint256) {
-		return _exchange(path);
+		return invoke(path);
 	}
 
 	function wrapWSTETH(bytes32 path) external payable returns (uint256) {
-		return _exchange(path);
+		return invoke(path);
 	}
 
 	function unwrapWSTETH(bytes32 path) external payable returns (uint256) {
-		return _exchange(path);
+		return invoke(path);
 	}
 
-	function _exchange(bytes32 path) internal virtual override returns (uint256 amountOut) {
+	function invoke(bytes32 path) internal virtual override returns (uint256 amountOut) {
 		(, uint8 i, uint8 j, uint8 wrapIn, ) = path.decode();
 
 		if (i > maxCurrencyId() || (j != STETH_IDX && j != WSTETH_IDX)) revert Errors.InvalidCurrencyId();
@@ -45,13 +46,13 @@ contract STETHWrapper is BaseAdapter {
 
 		// wstETH -> stETH
 		if (i == WSTETH_IDX && j == STETH_IDX) {
-			amountOut = invoke(WSTETH, i, WSTETH.balanceOfSelf());
+			amountOut = _invoke(WSTETH, i, WSTETH.balanceOfSelf());
 		} else {
 			// ETH -> stETH
 			if (i == ETH_IDX) {
 				if (wrapIn == UNWRAP_WETH) unwrapWETH(WETH, WETH.balanceOfSelf());
 
-				amountOut = invoke(STETH, i, address(this).balance);
+				amountOut = _invoke(STETH, i, address(this).balance);
 			}
 
 			// stETH -> wstETH
@@ -60,12 +61,12 @@ contract STETHWrapper is BaseAdapter {
 
 				STETH.approve(WSTETH.toAddress(), amountIn);
 
-				amountOut = invoke(WSTETH, STETH_IDX, amountIn);
+				amountOut = _invoke(WSTETH, STETH_IDX, amountIn);
 			}
 		}
 	}
 
-	function invoke(Currency target, uint8 i, uint256 amountIn) internal returns (uint256 amountOut) {
+	function _invoke(Currency target, uint8 i, uint256 amountIn) internal returns (uint256 amountOut) {
 		if (amountIn == 0) revert Errors.InsufficientAmountIn();
 
 		assembly ("memory-safe") {
@@ -99,44 +100,52 @@ contract STETHWrapper is BaseAdapter {
 	function _query(
 		Currency currencyIn,
 		Currency currencyOut,
-		uint256 amountIn
+		uint256 amountIn,
+		bool
 	) internal view virtual override returns (bytes32 path, uint256 amountOut) {
-		Currency weth = WETH;
-		Currency steth = STETH;
-		Currency wsteth = WSTETH;
-
-		Currency pool = wsteth;
-		uint8 wrapIn = currencyIn == weth ? UNWRAP_WETH : NO_ACTION;
+		Currency pool;
+		uint8 wrapIn;
 		uint8 i;
 		uint8 j;
 
-		if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == steth) {
-			amountOut = convert(steth, ETH_IDX, amountIn);
-
-			pool = steth;
-			i = ETH_IDX;
-			j = STETH_IDX;
-		} else if ((currencyIn.isNative() || currencyIn == weth) && currencyOut == wsteth) {
-			amountOut = convert(wsteth, STETH_IDX, convert(steth, ETH_IDX, amountIn));
-
-			i = ETH_IDX;
-			j = WSTETH_IDX;
-		} else if (currencyIn == steth && currencyOut == wsteth) {
-			amountOut = convert(wsteth, STETH_IDX, amountIn);
-
-			i = STETH_IDX;
-			j = WSTETH_IDX;
-		} else if (currencyIn == wsteth && currencyOut == steth) {
-			amountOut = convert(wsteth, WSTETH_IDX, amountIn);
-
-			i = WSTETH_IDX;
-			j = STETH_IDX;
+		if (currencyIn == WETH) {
+			wrapIn = UNWRAP_WETH;
+			currencyIn = CurrencyLibrary.NATIVE;
 		}
 
-		if (amountOut == 0) return (bytes32(0), 0);
+		if (currencyIn.isNative() && currencyOut == STETH) {
+			pool = STETH;
+			i = ETH_IDX;
+			j = STETH_IDX;
 
-		assembly ("memory-safe") {
-			path := add(pool, add(shl(160, i), add(shl(168, j), add(shl(176, wrapIn), shl(184, NO_ACTION)))))
+			amountOut = convert(STETH, ETH_IDX, amountIn);
+		} else if (currencyIn.isNative() && currencyOut == WSTETH) {
+			pool = WSTETH;
+			i = ETH_IDX;
+			j = WSTETH_IDX;
+
+			amountOut = convert(WSTETH, STETH_IDX, convert(STETH, ETH_IDX, amountIn));
+		} else if (currencyIn == STETH && currencyOut == WSTETH) {
+			pool = WSTETH;
+			i = STETH_IDX;
+			j = WSTETH_IDX;
+
+			amountOut = convert(WSTETH, STETH_IDX, amountIn);
+		} else if (currencyIn == WSTETH && currencyOut == STETH) {
+			pool = WSTETH;
+			i = WSTETH_IDX;
+			j = STETH_IDX;
+
+			amountOut = convert(WSTETH, WSTETH_IDX, amountIn);
+		}
+
+		if (amountOut != 0) {
+			assembly ("memory-safe") {
+				path := add(
+					pool,
+					add(shl(160, i), add(shl(168, j), add(shl(176, wrapIn), shl(184, NO_ACTION))))
+				)
+			}
 		}
 	}
 
