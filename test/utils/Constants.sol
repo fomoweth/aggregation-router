@@ -12,6 +12,7 @@ abstract contract Constants {
 	Currency constant WSTETH = Currency.wrap(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 	Currency constant FRXETH = Currency.wrap(0x5E8422345238F34275888049021821E8E08CAa1f);
 	Currency constant SFRXETH = Currency.wrap(0xac3E018457B222d93114458476f3E3416Abbe38F);
+	Currency constant RETH = Currency.wrap(0xae78736Cd615f374D3085123A210448E74Fc6393);
 	Currency constant WBTC = Currency.wrap(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
 	Currency constant DODO = Currency.wrap(0x43Dfc4159D86F3A37A5A4B3D4580b888ad7d4DDd);
 	Currency constant FXS = Currency.wrap(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
@@ -72,24 +73,12 @@ abstract contract Constants {
 	uint256 constant PANCAKE_V3_ID = 4;
 	uint256 constant PANCAKE_V2_ID = 5;
 	uint256 constant FRAX_V2_ID = 6;
-	uint256 constant CURVE_ID = 7;
-	uint256 constant DODO_V2_ID = 8;
-	uint256 constant DODO_V1_ID = 9;
-	uint256 constant FRXETH_WRAPPER_ID = 10;
-	uint256 constant STETH_WRAPPER_ID = 11;
-	uint256 constant ATOKEN_WRAPPER_ID = 12;
-	uint256 constant CTOKEN_WRAPPER_ID = 13;
-
-	uint256 constant UNISWAP_V3_IDX = 6;
-	uint256 constant UNISWAP_V2_IDX = 4;
-	uint256 constant SUSHI_V3_IDX = 1;
-	uint256 constant SUSHI_V2_IDX = 8;
-	uint256 constant PANCAKE_V3_IDX = 3;
-	uint256 constant PANCAKE_V2_IDX = 11;
-	uint256 constant FRAX_V2_IDX = 10;
-	uint256 constant CURVE_IDX = 5;
-	uint256 constant DODO_V2_IDX = 7;
-	uint256 constant DODO_V1_IDX = 9;
-	uint256 constant FRXETH_WRAPPER_IDX = 0;
-	uint256 constant STETH_WRAPPER_IDX = 2;
+	uint256 constant BALANCER_V2_ID = 7;
+	uint256 constant CURVE_ID = 8;
+	uint256 constant DODO_V2_ID = 9;
+	uint256 constant DODO_V1_ID = 10;
+	uint256 constant FRXETH_WRAPPER_ID = 11;
+	uint256 constant STETH_WRAPPER_ID = 12;
+	uint256 constant ATOKEN_WRAPPER_ID = 13;
+	uint256 constant CTOKEN_WRAPPER_ID = 14;
 }
