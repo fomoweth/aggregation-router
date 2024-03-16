@@ -2,14 +2,13 @@
 pragma solidity ^0.8.20;
 
 import {CurveAdapter} from "src/adapters/CurveAdapter.sol";
-import {META_REGISTRY} from "src/libraries/Constants.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract CurveAdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
 
-	uint256 ethAmount = 20 ether;
+	address constant META_REGISTRY = 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC;
 
 	CurveAdapter adapter;
 
@@ -29,7 +28,6 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyOut = WBTC;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
 		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
 		assertEq(toPool(queryPath), pool());
@@ -46,10 +44,7 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyIn = WETH;
 		Currency currencyOut = WBTC;
 
-		uint256 amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
-
-		deal(address(adapter), amountIn);
-		assertEq(address(adapter).balance, amountIn);
+		uint256 amountIn = deal(ETH, address(adapter), ethAmount);
 
 		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
 		assertEq(toPool(queryPath), pool());
@@ -71,7 +66,6 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyOut = WETH;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
 		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
 		assertEq(toPool(queryPath), pool());
@@ -89,7 +83,6 @@ contract CurveAdapterTest is BaseTest {
 		Currency currencyOut = WETH;
 
 		uint256 amountIn = deal(currencyIn, address(adapter), computeAmountIn(currencyIn, feed(), ethAmount));
-		assertEq(currencyIn.balanceOf(address(adapter)), amountIn);
 
 		(bytes32 queryPath, uint256 queryAmount) = adapter.query(currencyIn, currencyOut, amountIn);
 		assertEq(toPool(queryPath), pool());

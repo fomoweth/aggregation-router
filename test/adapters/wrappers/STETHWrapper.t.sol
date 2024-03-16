@@ -8,8 +8,6 @@ import {BaseTest} from "test/shared/BaseTest.t.sol";
 contract STETHWrapperTest is BaseTest {
 	using CurrencyLibrary for Currency;
 
-	uint256 ethAmount = 20 ether;
-
 	STETHWrapper adapter;
 
 	function setUp() public {
@@ -38,7 +36,6 @@ contract STETHWrapperTest is BaseTest {
 		// ETH -> stETH
 
 		amountIn = deal(ETH, address(adapter), ethAmount);
-		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
 		(queryPath, queryAmount) = adapter.query(ETH, STETH, amountIn, true);
 		assertEq(toPool(queryPath), STETH.toAddress());
@@ -55,7 +52,6 @@ contract STETHWrapperTest is BaseTest {
 		// WETH -> stETH
 
 		amountIn = deal(WETH, address(adapter), ethAmount);
-		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
 		(queryPath, queryAmount) = adapter.query(WETH, STETH, amountIn, true);
 		assertEq(toPool(queryPath), STETH.toAddress());
@@ -80,7 +76,6 @@ contract STETHWrapperTest is BaseTest {
 		// ETH -> wstETH
 
 		amountIn = deal(ETH, address(adapter), ethAmount);
-		assertEq(ETH.balanceOf(address(adapter)), amountIn);
 
 		(queryPath, queryAmount) = adapter.query(ETH, WSTETH, amountIn, true);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
@@ -97,7 +92,6 @@ contract STETHWrapperTest is BaseTest {
 		// WETH -> wstETH
 
 		amountIn = deal(WETH, address(adapter), ethAmount);
-		assertEq(WETH.balanceOf(address(adapter)), amountIn);
 
 		(queryPath, queryAmount) = adapter.query(WETH, WSTETH, amountIn, true);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
@@ -114,7 +108,6 @@ contract STETHWrapperTest is BaseTest {
 		// stETH -> wstETH
 
 		amountIn = deal(STETH, address(adapter), ethAmount);
-		assertEq(getBalance(STETH, address(adapter)), amountIn);
 
 		(queryPath, queryAmount) = adapter.query(STETH, WSTETH, amountIn, true);
 		assertEq(toPool(queryPath), WSTETH.toAddress());
@@ -131,7 +124,6 @@ contract STETHWrapperTest is BaseTest {
 		// wstETH -> stETH
 
 		uint256 amountIn = deal(WSTETH, address(adapter), ethAmount);
-		assertEq(getBalance(WSTETH, address(adapter)), amountIn);
 
 		(bytes32 queryPath, uint256 queryAmount) = adapter.query(WSTETH, STETH, amountIn, false);
 		assertEq(toPool(queryPath), WSTETH.toAddress());

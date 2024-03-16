@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
 import {ATokenWrapper} from "src/adapters/wrappers/ATokenWrapper.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/shared/BaseTest.t.sol";
@@ -22,8 +21,6 @@ contract ATokenWrapperTest is BaseTest {
 	Currency constant aWETH = Currency.wrap(0x030bA81f1c18d280636F32af80b9AAd02Cf0854e);
 	Currency constant aWBTC = Currency.wrap(0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656);
 	Currency constant aUSDC = Currency.wrap(0xBcca60bB61934080951369a648Fb03DF4F96263C);
-
-	uint256 ethAmount = 20 ether;
 
 	ATokenWrapper adapter;
 

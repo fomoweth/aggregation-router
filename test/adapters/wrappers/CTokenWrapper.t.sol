@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
 import {CTokenWrapper} from "src/adapters/wrappers/CTokenWrapper.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
@@ -15,8 +14,6 @@ contract CTokenWrapperTest is BaseTest {
 
 	Currency constant cWBTC = Currency.wrap(0xccF4429DB6322D5C611ee964527D42E5d685DD6a);
 	Currency constant cUSDC = Currency.wrap(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
-
-	uint256 ethAmount = 20 ether;
 
 	CTokenWrapper adapter;
 

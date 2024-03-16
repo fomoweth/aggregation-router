@@ -10,6 +10,8 @@ import {Constants} from "./Constants.sol";
 abstract contract BaseTest is Test, Constants {
 	using CurrencyLibrary for Currency;
 
+	uint256 ethAmount = 20 ether;
+
 	function deployAdapter(
 		bytes32 salt,
 		bytes memory creationCode
@@ -127,19 +129,19 @@ abstract contract BaseTest is Test, Constants {
 	function computeAmountIn(
 		Currency currencyIn,
 		address feed,
-		uint256 ethAmount
+		uint256 amount
 	) internal view returns (uint256) {
-		if (currencyIn.isNative() || currencyIn == WETH) return ethAmount;
+		if (currencyIn.isNative() || currencyIn == WETH) return amount;
 
-		return FullMath.mulDiv(ethAmount, 10 ** currencyIn.decimals(), latestAnswer(feed));
+		return FullMath.mulDiv(amount, 10 ** currencyIn.decimals(), latestAnswer(feed));
 	}
 
-	function convertFromETH(uint256 ethAmount, uint256 price, uint256 unit) internal pure returns (uint256) {
-		return FullMath.mulDiv(ethAmount, 10 ** unit, price);
+	function convertFromETH(uint256 amount, uint256 price, uint256 unit) internal pure returns (uint256) {
+		return FullMath.mulDiv(amount, 10 ** unit, price);
 	}
 
-	function convertToETH(uint256 ethAmount, uint256 price, uint256 unit) internal pure returns (uint256) {
-		return FullMath.mulDiv(ethAmount, price, 10 ** unit);
+	function convertToETH(uint256 amount, uint256 price, uint256 unit) internal pure returns (uint256) {
+		return FullMath.mulDiv(amount, price, 10 ** unit);
 	}
 
 	function derivePrice(

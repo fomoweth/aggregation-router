@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {BalancerV2Adapter} from "src/adapters/BalancerV2Adapter.sol";
-import {VAULT} from "src/libraries/Constants.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "test/shared/BaseTest.t.sol";
@@ -10,8 +9,6 @@ import {BaseTest} from "test/shared/BaseTest.t.sol";
 contract BalancerV2AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
 	using PercentageMath for uint256;
-
-	uint256 ethAmount = 20 ether;
 
 	BalancerV2Adapter adapter;
 
@@ -44,7 +41,6 @@ contract BalancerV2AdapterTest is BaseTest {
 		amountIn = computeAmountIn(currencyIn, feed(), ethAmount);
 
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
 		uint256 snapshot = vm.snapshot();
 
@@ -90,7 +86,6 @@ contract BalancerV2AdapterTest is BaseTest {
 		uint256 snapshot = vm.snapshot();
 
 		deal(currencyIn, address(adapter), amountIn);
-		assertEq(getBalance(currencyIn, address(adapter)), amountIn);
 
 		path = pack(pool, i, j, NO_ACTION, NO_ACTION, false);
 

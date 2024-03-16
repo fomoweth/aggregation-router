@@ -23,8 +23,6 @@ import {BaseTest} from "test/shared/BaseTest.t.sol";
 contract AggregationRouterTest is BaseTest {
 	using CurrencyLibrary for Currency;
 
-	uint256 ethAmount = 10 ether;
-
 	AggregationRouter router;
 
 	UniswapV3Adapter uniV3Adapter;
