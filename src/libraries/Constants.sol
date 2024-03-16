@@ -58,3 +58,9 @@ address constant SELL_HELPER = 0x533dA777aeDCE766CEAe696bf90f8541A4bA80Eb;
 // Curve Constants
 
 address constant META_REGISTRY = 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC;
+
+// Balancer Constants
+
+address constant VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+
+address constant EXTERNAL_WEIGHTED_MATH = 0x3db89f0CA3b388f2BcDbccD2ff8E13C22459CF75;

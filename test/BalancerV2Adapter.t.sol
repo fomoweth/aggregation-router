@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console2 as console} from "forge-std/Test.sol";
 import {BalancerV2Adapter} from "src/adapters/BalancerV2Adapter.sol";
 import {VAULT} from "src/libraries/Constants.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseTest} from "./BaseTest.t.sol";
-
-// forge test -vvvv --match-path test/BalancerV2Adapter.t.sol
 
 contract BalancerV2AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;
