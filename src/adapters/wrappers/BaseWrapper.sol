@@ -24,14 +24,6 @@ abstract contract BaseWrapper is IWrapper, Context {
 		WETH = _weth;
 	}
 
-	function wrap(bytes32 path) external payable returns (uint256) {
-		return invoke(path);
-	}
-
-	function unwrap(bytes32 path) external payable returns (uint256) {
-		return invoke(path);
-	}
-
 	function query(
 		Currency wrapped,
 		Currency underlying,
