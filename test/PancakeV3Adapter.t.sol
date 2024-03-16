@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {PancakeV3Adapter} from "src/adapters/PancakeV3Adapter.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "test/BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract PancakeV3AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;

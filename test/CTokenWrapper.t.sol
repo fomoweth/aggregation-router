@@ -5,7 +5,7 @@ import {console2 as console} from "forge-std/Test.sol";
 import {CTokenWrapper} from "src/adapters/wrappers/CTokenWrapper.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "./BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract CTokenWrapperTest is BaseTest {
 	using CurrencyLibrary for Currency;

@@ -5,7 +5,7 @@ import {console2 as console} from "forge-std/Test.sol";
 import {SushiV3Adapter} from "src/adapters/SushiV3Adapter.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "test/BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract SushiV3AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;

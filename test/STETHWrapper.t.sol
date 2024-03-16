@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {STETHWrapper} from "src/adapters/wrappers/STETHWrapper.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "test/BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract STETHWrapperTest is BaseTest {
 	using CurrencyLibrary for Currency;

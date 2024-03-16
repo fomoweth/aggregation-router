@@ -5,7 +5,7 @@ import {BalancerV2Adapter} from "src/adapters/BalancerV2Adapter.sol";
 import {VAULT} from "src/libraries/Constants.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "./BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract BalancerV2AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;

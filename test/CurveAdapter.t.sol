@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {CurveAdapter} from "src/adapters/CurveAdapter.sol";
 import {META_REGISTRY} from "src/libraries/Constants.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "./BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract CurveAdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;

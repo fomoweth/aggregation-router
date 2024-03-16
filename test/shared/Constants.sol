@@ -12,12 +12,9 @@ abstract contract Constants {
 	Currency constant WSTETH = Currency.wrap(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 	Currency constant FRXETH = Currency.wrap(0x5E8422345238F34275888049021821E8E08CAa1f);
 	Currency constant SFRXETH = Currency.wrap(0xac3E018457B222d93114458476f3E3416Abbe38F);
-	Currency constant CBETH = Currency.wrap(0xBe9895146f7AF43049ca1c1AE358B0541Ea49704);
-	Currency constant RETH = Currency.wrap(0xae78736Cd615f374D3085123A210448E74Fc6393);
 	Currency constant WBTC = Currency.wrap(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
 	Currency constant BAL = Currency.wrap(0xba100000625a3754423978a60c9317c58a424e3D);
 	Currency constant DODO = Currency.wrap(0x43Dfc4159D86F3A37A5A4B3D4580b888ad7d4DDd);
-	Currency constant FXS = Currency.wrap(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
 	Currency constant NEAR = Currency.wrap(0x85F17Cf997934a597031b2E18a9aB6ebD4B9f6a4);
 	Currency constant SUSHI = Currency.wrap(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2);
 
@@ -33,7 +30,6 @@ abstract contract Constants {
 	address constant USDT_ETH_FEED = 0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46;
 	address constant DAI_ETH_FEED = 0x773616E4d11A78F511299002da57A0a94577F1f4;
 	address constant FRAX_ETH_FEED = 0x14d04Fff8D21bd62987a5cE9ce543d2F1edF5D3E;
-	address constant FRAX_FXS_FEED = 0x03B59Bd1c8B9F6C265bA0c3421923B93f15036Fa;
 	address constant SUSHI_ETH_FEED = 0xe572CeF69f43c2E488b33924AF04BDacE19079cf;
 
 	// AAVE

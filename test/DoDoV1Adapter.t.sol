@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {DoDoV1Adapter} from "src/adapters/DoDoV1Adapter.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "test/BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract DoDoV1AdapterTest is BaseTest {
 	using CurrencyLibrary for Currency;

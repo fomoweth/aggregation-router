@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Create3} from "src/libraries/Create3.sol";
 import {FullMath} from "src/libraries/FullMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {Constants} from "test/utils/Constants.sol";
+import {Constants} from "./Constants.sol";
 
 abstract contract BaseTest is Test, Constants {
 	using CurrencyLibrary for Currency;

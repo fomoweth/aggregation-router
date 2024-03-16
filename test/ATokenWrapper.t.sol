@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {console2 as console} from "forge-std/Test.sol";
 import {ATokenWrapper} from "src/adapters/wrappers/ATokenWrapper.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
-import {BaseTest} from "./BaseTest.t.sol";
+import {BaseTest} from "test/shared/BaseTest.t.sol";
 
 contract ATokenWrapperTest is BaseTest {
 	using CurrencyLibrary for Currency;
