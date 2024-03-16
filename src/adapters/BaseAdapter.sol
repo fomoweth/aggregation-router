@@ -22,10 +22,6 @@ abstract contract BaseAdapter is IAdapter, Context {
 		WETH = _weth;
 	}
 
-	function swap(bytes32 path) external payable returns (uint256) {
-		return _swap(path);
-	}
-
 	function query(
 		Currency currencyIn,
 		Currency currencyOut,

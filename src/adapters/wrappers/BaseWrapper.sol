@@ -3,14 +3,12 @@ pragma solidity ^0.8.20;
 
 import {IWrapper} from "src/interfaces/IWrapper.sol";
 import {Errors} from "src/libraries/Errors.sol";
-import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
+import {Currency} from "src/types/Currency.sol";
 import {Context} from "@openzeppelin/utils/Context.sol";
 
 /// @title BaseWrapper
 
 abstract contract BaseWrapper is IWrapper, Context {
-	using CurrencyLibrary for Currency;
-
 	uint256 public immutable id;
 
 	Currency internal immutable WETH;

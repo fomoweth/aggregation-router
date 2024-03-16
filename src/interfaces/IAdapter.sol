@@ -4,8 +4,6 @@ pragma solidity ^0.8.20;
 import {Currency} from "src/types/Currency.sol";
 
 interface IAdapter {
-	function swap(bytes32 path) external payable returns (uint256 amountOut);
-
 	function query(
 		Currency currencyIn,
 		Currency currencyOut,
