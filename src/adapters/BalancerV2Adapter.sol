@@ -4,9 +4,7 @@ pragma solidity ^0.8.20;
 import {EXTERNAL_WEIGHTED_MATH, VAULT} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {FullMath} from "src/libraries/FullMath.sol";
-import {LogExpMath} from "src/libraries/LogExpMath.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
-import {WadRayMath} from "src/libraries/WadRayMath.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
@@ -209,10 +207,6 @@ contract BalancerV2Adapter is BaseAdapter {
 
 			amountOut := mload(0x00)
 		}
-	}
-
-	function toPoolAddress(bytes32 poolId) internal pure returns (address) {
-		return address(uint160(uint256(poolId)) >> (12 * 8));
 	}
 
 	function maxCurrencyId() internal pure virtual override returns (uint256) {

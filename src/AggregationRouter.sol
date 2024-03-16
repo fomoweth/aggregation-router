@@ -61,6 +61,8 @@ contract AggregationRouter is IAggregationRouter, Context {
 	}
 
 	function dispatch(bytes calldata call) internal returns (bytes memory returndata) {
+		if (call.length == 0) revert Errors.ZeroBytes();
+
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 

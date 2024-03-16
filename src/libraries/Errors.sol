@@ -10,14 +10,6 @@ library Errors {
 
 	error ZeroBytes32();
 
-	error EmptyData();
-
-	error ExceededMaxLimit();
-
-	error InvalidAction();
-
-	error InvalidConversion();
-
 	error IdenticalCurrencyIds();
 
 	error InvalidCurrencyId();
@@ -32,11 +24,9 @@ library Errors {
 
 	error InsufficientAmountOut();
 
-	error InsufficientBalance();
-
 	error InsufficientReserves();
 
-	error OutOfBound();
+	error NotSupported();
 
-	error Overflow();
+	error OutOfBound();
 }
