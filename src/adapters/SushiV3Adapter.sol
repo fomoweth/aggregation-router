@@ -12,7 +12,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title SushiV3Adapter
-/// @notice Performs swaps to be handled on SushiSwap V3 pools
+/// @notice Performs swaps on SushiSwap V3 pools
 
 contract SushiV3Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;

@@ -8,7 +8,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title FraxSwapV2Adapter
-/// @notice Performs swaps to be handled on FraxSwap pools
+/// @notice Performs swaps on FraxSwap pools
 
 contract FraxSwapV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;

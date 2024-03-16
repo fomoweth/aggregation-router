@@ -8,7 +8,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title UniswapV2Adapter
-/// @notice Performs swaps to be handled on Uniswap V2 pools
+/// @notice Performs swaps on Uniswap V2 pools
 
 contract UniswapV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {EXTERNAL_WEIGHTED_MATH, VAULT} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {FullMath} from "src/libraries/FullMath.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
@@ -9,12 +8,16 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title BalancerV2Adapter
-/// @notice Performs swaps to be handled on Balancer V2 pools
+/// @notice Performs swaps on Balancer V2 pools
 
 contract BalancerV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using FullMath for uint256;
 	using PathDecoder for bytes32;
+
+	address internal constant VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+
+	address internal constant EXTERNAL_WEIGHTED_MATH = 0x3db89f0CA3b388f2BcDbccD2ff8E13C22459CF75;
 
 	uint8 internal constant SWAP_KIND_GIVEN_IN = 0;
 	uint8 internal constant SWAP_KIND_GIVEN_OUT = 1;

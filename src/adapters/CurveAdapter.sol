@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {META_REGISTRY} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title CurveAdapter
-/// @notice Performs swaps to be handled on Curve pools
+/// @notice Performs swaps on Curve pools
 
 contract CurveAdapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
+
+	address internal constant META_REGISTRY = 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC;
 
 	uint8 internal constant IS_UNDERLYING_FLAG_IDX = 0;
 

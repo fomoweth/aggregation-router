@@ -10,7 +10,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title PancakeV3Adapter
-/// @notice Performs swaps to be handled on PancakeSwap V3 pools
+/// @notice Performs swaps on PancakeSwap V3 pools
 
 contract PancakeV3Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;

@@ -8,7 +8,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title PancakeV2Adapter
-/// @notice Performs swaps to be handled on PancakeSwap V2 pools
+/// @notice Performs swaps on PancakeSwap V2 pools
 
 contract PancakeV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;

@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {DPP_FACTORY, DSP_FACTORY, DVM_FACTORY} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title DoDoV2Adapter
-/// @notice Performs swaps to be handled on DODO V2 pools
+/// @notice Performs swaps on DODO V2 pools
 
 contract DoDoV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
+
+	address internal constant DVM_FACTORY = 0x72d220cE168C4f361dD4deE5D826a01AD8598f6C;
+
+	address internal constant DSP_FACTORY = 0x6fdDB76c93299D985f4d3FC7ac468F9A168577A4;
+
+	address internal constant DPP_FACTORY = 0x5336edE8F971339F6c0e304c66ba16F1296A2Fbe;
 
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 

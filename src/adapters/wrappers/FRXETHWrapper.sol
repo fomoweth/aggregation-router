@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {FRXETH_MINTER} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
@@ -16,6 +15,8 @@ contract FRXETHWrapper is BaseWrapper {
 
 	Currency internal immutable FRXETH;
 	Currency internal immutable SFRXETH;
+
+	address internal constant FRXETH_MINTER = 0xbAFA44EFE7901E04E39Dad13167D089C559c1138;
 
 	uint8 internal constant ETH_IDX = 0;
 	uint8 internal constant FRXETH_IDX = 1;

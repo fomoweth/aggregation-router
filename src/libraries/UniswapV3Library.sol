@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {Currency} from "src/types/Currency.sol";
-import {PANCAKE_V3_POOL_DEPLOYER, PANCAKE_V3_POOL_INIT_CODE_HASH, SUSHI_V3_FACTORY, UNISWAP_V3_FACTORY, UNISWAP_V3_POOL_INIT_CODE_HASH} from "./Constants.sol";
 import {SafeCast} from "./SafeCast.sol";
 import {SwapMath} from "./SwapMath.sol";
 import {TickBitmap} from "./TickBitmap.sol";
@@ -12,6 +11,16 @@ import {TickMath} from "./TickMath.sol";
 
 library UniswapV3Library {
 	using SafeCast for uint256;
+
+	address internal constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+	bytes32 internal constant UNISWAP_V3_POOL_INIT_CODE_HASH =
+		0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
+
+	address internal constant PANCAKE_V3_POOL_DEPLOYER = 0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9;
+	bytes32 internal constant PANCAKE_V3_POOL_INIT_CODE_HASH =
+		0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2;
+
+	address internal constant SUSHI_V3_FACTORY = 0xbACEB8eC6b9355Dfc0269C18bac9d6E2Bdc29C4F;
 
 	function swap(
 		address pool,

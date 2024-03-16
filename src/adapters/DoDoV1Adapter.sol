@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {APPROVE_PROXY, DODO_ZOO, SELL_HELPER} from "src/libraries/Constants.sol";
 import {Errors} from "src/libraries/Errors.sol";
 import {PathDecoder} from "src/libraries/PathDecoder.sol";
 import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title DoDoV1Adapter
-/// @notice Performs swaps to be handled on DODO V1 pools
+/// @notice Performs swaps on DODO V1 pools
 
 contract DoDoV1Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
 	using PathDecoder for bytes32;
+
+	address internal constant DODO_ZOO = 0x3A97247DF274a17C59A3bd12735ea3FcDFb49950;
+
+	address internal constant SELL_HELPER = 0x533dA777aeDCE766CEAe696bf90f8541A4bA80Eb;
 
 	constructor(uint256 _id, Currency _weth) BaseAdapter(_id, _weth) {}
 

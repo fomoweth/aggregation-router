@@ -1,12 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {FRAXSWAP_FACTORY, FRAXSWAP_PAIR_INIT_CODE_HASH, PANCAKE_V2_FACTORY, PANCAKE_V2_PAIR_INIT_CODE_HASH, SUSHI_V2_FACTORY, SUSHI_V2_PAIR_INIT_CODE_HASH, UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH} from "./Constants.sol";
 import {Currency} from "src/types/Currency.sol";
 
 /// @title UniswapV2Library
 
 library UniswapV2Library {
+	address internal constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+	bytes32 internal constant UNISWAP_V2_PAIR_INIT_CODE_HASH =
+		0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f;
+
+	address internal constant FRAXSWAP_FACTORY = 0x43eC799eAdd63848443E2347C49f5f52e8Fe0F6f;
+	bytes32 internal constant FRAXSWAP_PAIR_INIT_CODE_HASH =
+		0x4ce0b4ab368f39e4bd03ec712dfc405eb5a36cdb0294b3887b441cd1c743ced3;
+
+	address internal constant PANCAKE_V2_FACTORY = 0x1097053Fd2ea711dad45caCcc45EfF7548fCB362;
+	bytes32 internal constant PANCAKE_V2_PAIR_INIT_CODE_HASH =
+		0x57224589c67f3f30a6b0d7a1b54cf3153ab84563bc609ef41dfb34f8b2974d2d;
+
+	address internal constant SUSHI_V2_FACTORY = 0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac;
+	bytes32 internal constant SUSHI_V2_PAIR_INIT_CODE_HASH =
+		0xe18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303;
+
 	function swap(address pair, uint256 amount0Out, uint256 amount1Out, address recipient) internal {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)

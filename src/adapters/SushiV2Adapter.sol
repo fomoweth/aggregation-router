@@ -8,7 +8,7 @@ import {Currency, CurrencyLibrary} from "src/types/Currency.sol";
 import {BaseAdapter} from "./BaseAdapter.sol";
 
 /// @title SushiV2Adapter
-/// @notice Performs swaps to be handled on SushiSwap V2 pools
+/// @notice Performs swaps on SushiSwap V2 pools
 
 contract SushiV2Adapter is BaseAdapter {
 	using CurrencyLibrary for Currency;
