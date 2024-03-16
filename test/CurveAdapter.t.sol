@@ -238,8 +238,9 @@ contract CurveAdapterTest is BaseTest {
 		}
 	}
 
+	// Tricrypto
 	function pool() internal pure returns (address) {
-		return TRICRYPTO_POOL;
+		return 0x80466c64868E1ab14a1Ddf27A676C3fcBE638Fe5;
 	}
 
 	function feed() internal pure returns (address) {

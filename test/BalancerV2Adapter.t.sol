@@ -15,12 +15,6 @@ contract BalancerV2AdapterTest is BaseTest {
 
 	BalancerV2Adapter adapter;
 
-	bytes32 constant BAL_WETH_WEIGHTED_POOL_ID =
-		0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014;
-
-	bytes32 constant WBTC_WETH_WEIGHTED_POOL_ID =
-		0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e;
-
 	function setUp() public {
 		fork();
 
@@ -134,8 +128,9 @@ contract BalancerV2AdapterTest is BaseTest {
 		return BTC_ETH_FEED;
 	}
 
+	// B-50WBTC-50WETH
 	function pid() internal pure returns (bytes32) {
-		return WBTC_WETH_WEIGHTED_POOL_ID;
+		return 0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e;
 	}
 
 	function toPoolAddress(bytes32 poolId) internal pure returns (address) {

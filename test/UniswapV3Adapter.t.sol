@@ -104,8 +104,9 @@ contract UniswapV3AdapterTest is BaseTest {
 		assertEq(amountOut, quoteAmount);
 	}
 
+	// WBTC-WETH/3000
 	function pool() internal pure returns (address) {
-		return UNI_V3_WBTC_ETH_3000_POOL;
+		return 0xCBCdF9626bC03E24f779434178A73a0B4bad62eD;
 	}
 
 	function currency0() internal pure returns (Currency) {

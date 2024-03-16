@@ -199,8 +199,9 @@ contract DoDoV2AdapterTest is BaseTest {
 		}
 	}
 
+	// WETH-NEAR DVM
 	function pool() internal pure returns (address) {
-		return DODO_V2_WETH_NEAR_DVM_POOL;
+		return 0x983dfBa1c0724786598Af0E63a9a6f94aAbd24A1;
 	}
 
 	function base() internal pure returns (Currency) {

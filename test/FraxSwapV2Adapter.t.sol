@@ -100,8 +100,9 @@ contract FraxSwapV2AdapterTest is BaseTest {
 		assertEq(amountOut, quoteAmount);
 	}
 
+	// FRAX-WETH
 	function pool() internal pure returns (address) {
-		return FRAX_V2_FRAX_ETH_POOL;
+		return 0x31351Bf3fba544863FBff44DDC27bA880916A199;
 	}
 
 	function currency0() internal pure returns (Currency) {

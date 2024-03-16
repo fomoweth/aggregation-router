@@ -100,8 +100,9 @@ contract SushiV2AdapterTest is BaseTest {
 		assertEq(amountOut, quoteAmount);
 	}
 
+	// SUSHI-WETH
 	function pool() internal pure returns (address) {
-		return SUSHI_V2_SUSHI_ETH_POOL;
+		return 0x795065dCc9f64b5614C407a6EFDC400DA6221FB0;
 	}
 
 	function currency0() internal pure returns (Currency) {

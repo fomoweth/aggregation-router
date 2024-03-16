@@ -220,4 +220,6 @@ abstract contract BaseTest is Test, Constants {
 	function toPool(bytes32 path) internal pure returns (address) {
 		return address(uint160(uint256(path)));
 	}
+
+	receive() external payable {}
 }

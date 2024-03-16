@@ -107,8 +107,9 @@ contract SushiV3AdapterTest is BaseTest {
 		assertApproxEqAbs(amountOut, quoteAmount, quoteAmount.percentMul(1));
 	}
 
+	// SUSHI-WETH/3000
 	function pool() internal pure returns (address) {
-		return SUSHI_V3_SUSHI_ETH_3000_POOL;
+		return 0x87C7056BBE6084f03304196Be51c6B90B6d85Aa2;
 	}
 
 	function currency0() internal pure returns (Currency) {

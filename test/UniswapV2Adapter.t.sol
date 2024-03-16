@@ -104,8 +104,9 @@ contract UniswapV2AdapterTest is BaseTest {
 		assertEq(amountOut, quoteAmount);
 	}
 
+	// WBTC-WETH
 	function pool() internal pure returns (address) {
-		return UNI_V2_WBTC_ETH_POOL;
+		return 0xBb2b8038a1640196FbE3e38816F3e67Cba72D940;
 	}
 
 	function currency0() internal pure returns (Currency) {

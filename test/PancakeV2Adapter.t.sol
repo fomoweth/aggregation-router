@@ -101,8 +101,9 @@ contract PancakeV2AdapterTest is BaseTest {
 		assertEq(amountOut, quoteAmount);
 	}
 
+	// WBTC-WETH
 	function pool() internal pure returns (address) {
-		return PANCAKE_V2_WBTC_ETH_POOL;
+		return 0x4AB6702B3Ed3877e9b1f203f90cbEF13d663B0e8;
 	}
 
 	function currency0() internal pure returns (Currency) {

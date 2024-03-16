@@ -12,8 +12,6 @@ contract DoDoV1AdapterTest is BaseTest {
 
 	DoDoV1Adapter adapter;
 
-	address constant SELL_HELPER = 0x533dA777aeDCE766CEAe696bf90f8541A4bA80Eb;
-
 	function setUp() public {
 		fork();
 
@@ -155,8 +153,9 @@ contract DoDoV1AdapterTest is BaseTest {
 		}
 	}
 
+	// WETH-USDC
 	function pool() internal pure returns (address) {
-		return DODO_V1_WETH_USDC_POOL;
+		return 0x75c23271661d9d143DCb617222BC4BEc783eff34;
 	}
 
 	function base() internal pure returns (Currency) {

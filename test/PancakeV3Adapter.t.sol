@@ -106,8 +106,9 @@ contract PancakeV3AdapterTest is BaseTest {
 		assertEq(address(adapter).balance, amountOut);
 	}
 
+	// WETH-USDT/500
 	function pool() internal pure returns (address) {
-		return PANCAKE_V3_ETH_USDT_500_POOL;
+		return 0x6CA298D2983aB03Aa1dA7679389D955A4eFEE15C;
 	}
 
 	function currency0() internal pure returns (Currency) {
