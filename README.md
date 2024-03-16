@@ -24,9 +24,9 @@ It can be aggregated with:
 
 ### AggregationRouter
 
-The [`AggregationRouter`](https://github.com/fomoweth/aggregation-router/blob/main/src/AggregationRouter.sol) contract was inspired by [Synthetix: CoreRouter](https://etherscan.io/address/0xaf476d7817105437aed79a86e802b79d4b1c473f#code). The constant address variables in the [`AggregationRouter`](https://github.com/fomoweth/aggregation-router/blob/main/src/AggregationRouter.sol) were obtained via [CREATE3](https://github.com/transmissions11/solmate/blob/main/src/utils/CREATE3.sol). **These address variables must be updated before the deployment.**
+The `AggregationRouter` contract was inspired by [Synthetix: CoreRouter](https://etherscan.io/address/0xaf476d7817105437aed79a86e802b79d4b1c473f#code). The constant address variables in the `AggregationRouter` were obtained via [CREATE3](https://github.com/transmissions11/solmate/blob/main/src/utils/CREATE3.sol). **These address variables must be updated before the deployment.**
 
-[`aggregate`](https://github.com/fomoweth/aggregation-router/blob/7328ea759417c66ac05b2873c02729a4720225c7/src/AggregationRouter.sol#L32)
+[`aggregate`](https://github.com/fomoweth/aggregation-router/blob/7328ea759417c66ac05b2873c02729a4720225c7/src/AggregationRouter.sol#L32): Performs swaps, delegating all encoded calls to the adapters mapped by function selectors.
 
 ```solidity
 function aggregate(
@@ -38,8 +38,6 @@ function aggregate(
 	uint256 amountOutMin
 ) external payable returns (uint256 amountOut);
 ```
-
-Performs swaps, delegating all encoded calls to the adapters mapped by function selectors.
 
 #### Encoding calls
 
